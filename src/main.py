@@ -26,8 +26,10 @@ def main1():
 
 def main2():
     path = Path("/home/arthurpmrs/Documents/Library/Nova pasta/William Shotts - The Linux Command Line_ A Complete Introduction-No Starch Press (2019).pdf")
-    fetcher = MetadataFetcher(path)
-    fetcher.fetch_metadata()
+    fetcher = MetadataFetcher()
+    book = fetcher.fetch_metadata_from_file(path)
+    print(book)
+    print(book.folder)
 
 
 

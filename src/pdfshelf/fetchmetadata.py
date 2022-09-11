@@ -1,17 +1,17 @@
+import os
 import re
 import logging
 import isbnlib
 from pathlib import Path
 from PyPDF2 import PdfReader
 from .domain import Book, Paper
-from .config import config_folder
+from .config import config_folder, default_document_folder
 from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
 
 class MetadataFetcher:
 
-    def __init__(self, path: Path):
-        self.path = path
+    def __init__(self):
         self.setup_logging()
 
     def setup_logging(self):
@@ -26,28 +26,42 @@ class MetadataFetcher:
         f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         f_handler.setFormatter(f_format)
         self.logger.addHandler(f_handler)
-    
-    
-    def fetch_metadata(self):
-        if self.path.is_dir():
-            self._from_folder()
-        else:
-            self._from_file()
 
-    def _from_file(self):
-        if self.path.suffix == ".pdf":
-            metadata = self._get_pdf_metadata()
-        elif self.path.suffix == ".epub":
+    def fetch_metadata_from_file(self, path) -> Book:
+        if path.suffix == ".pdf":
+            metadata = self._get_pdf_metadata(path)
+        elif path.suffix == ".epub":
             metadata = self._get_epub_metadata()
         else:
-            self.logger.error(f"{self.path.name} has a not supported format.")
+            self.logger.error(f"{path.name} has a not supported format.")
             raise FormatNotSupportedError("Only PDF and EPUB are supported.")
 
-    def _get_pdf_metadata(self, pages_to_read: int = 10):
+        folder = {
+            "name": "Default",
+            "path": default_document_folder
+        }
+
+        book = Book(
+            title=metadata["Title"],
+            authors=metadata["Authors"],
+            year=int(metadata["Year"]),
+            publisher=metadata["Publisher"],
+            lang=metadata["Language"],
+            isbn13=metadata.get("ISBN-13", None),
+            isbn10=metadata.get("ISBN-10", None),
+            folder=folder,
+            size=os.path.getsize(path),
+            filename=path.name,
+            ext=path.suffix,
+            storage_path=default_document_folder,
+        )
+        return book
+
+    def _get_pdf_metadata(self, path: Path, pages_to_read: int = 10) -> dict:
         re_ISBN = re.compile(r'(978-?|979-?)?\d(-?\d){9}')
         isbn10 = ""
         isbn13 = ""
-        reader = PdfReader(self.path)
+        reader = PdfReader(path)
         pages = reader.pages[0:pages_to_read]
         for i, page in enumerate(pages):
             text = page.extract_text()
@@ -63,23 +77,21 @@ class MetadataFetcher:
                             isbn13 = match_str
         
         if isbn13:
-            self.logger.info(f"ISBN-13: {isbn13} found for {self.path.name}.")
+            self.logger.info(f"ISBN-13: {isbn13} found for {path.name}.")
             metadata = isbnlib.meta(isbn13.replace("-", ""))
-            print(metadata)
             if metadata:
-                self.logger.info(f"Metadata found for {self.path.name}.")
+                self.logger.info(f"Metadata found for {path.name}.")
                 return metadata
             else:
-                self.logger.warning(f"Metadata could not be found with ISBN-13 for {self.path.name}. Trying ISBN-10...")
+                self.logger.warning(f"Metadata could not be found with ISBN-13 for {path.name}. Trying ISBN-10...")
         else:
             self.logger.warning(f"ISBN-13 not found. Trying ISBN-10...")
         
         if isbn10:
-            self.logger.info(f"ISBN-10: {isbn10} found for {self.path.name}.")
+            self.logger.info(f"ISBN-10: {isbn10} found for {path.name}.")
             metadata = isbnlib.meta(isbn10.replace("-", ""))
-            print(metadata)
             if metadata:
-                self.logger.info(f"Metadata found for {self.path.name}.")
+                self.logger.info(f"Metadata found for {path.name}.")
                 return metadata
         
-        self.logger.error(f"Metadata not fount for {self.path.name}")
+        self.logger.error(f"Metadata not fount for {path.name}")
