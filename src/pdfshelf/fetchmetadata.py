@@ -10,6 +10,7 @@ from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
 
 class MetadataFetcher:
+    FORMATS = [".pdf", ".epub"]
 
     def __init__(self):
         self.setup_logging()
@@ -27,37 +28,55 @@ class MetadataFetcher:
         f_handler.setFormatter(f_format)
         self.logger.addHandler(f_handler)
 
-    def fetch_metadata_from_file(self, path) -> Book:
+    def fetch_metadata_from_folder(self, folderpath: Path) -> tuple[list[Book], int]:
+        books = []
+        success_count = 0
+        folder = {"name": folderpath.name, "path": folderpath}
+        for filepath in folderpath.rglob("*"):
+            if filepath.suffix in MetadataFetcher.FORMATS:
+                book_data = self.fetch_metadata_from_file(filepath, folder)
+                books.append(book_data)
+                success_count += 1 if book_data[1] else 0
+        return books, success_count
+
+
+
+    def fetch_metadata_from_file(self, path: Path, folder: dict = None) -> Book:
         if path.suffix == ".pdf":
-            metadata = self._get_pdf_metadata(path)
+            metadata, success = self._get_pdf_metadata(path)
         elif path.suffix == ".epub":
-            metadata = self._get_epub_metadata()
+            metadata, success = self._get_epub_metadata()
         else:
             self.logger.error(f"{path.name} has a not supported format.")
-            raise FormatNotSupportedError("Only PDF and EPUB are supported.")
+            raise FormatNotSupportedError("Only PDFs and EPUBs are supported.")
 
-        folder = {
-            "name": "Default",
-            "path": default_document_folder
-        }
-
+        
+        if folder:
+            storage_path = path.relative_to(folder["path"])
+        else:
+            storage_path = default_document_folder
+            folder = {
+                "name": "Default",
+                "path": default_document_folder
+            }
+            
         book = Book(
-            title=metadata["Title"],
-            authors=metadata["Authors"],
-            year=int(metadata["Year"]),
-            publisher=metadata["Publisher"],
-            lang=metadata["Language"],
+            title=metadata.get("Title", ""),
+            authors=metadata.get("Authors", ""),
+            year=int(metadata.get("Year", "0")),
+            publisher=metadata.get("Publisher", ""),
+            lang=metadata.get("Language", ""),
             isbn13=metadata.get("ISBN-13", None),
             isbn10=metadata.get("ISBN-10", None),
             folder=folder,
             size=os.path.getsize(path),
             filename=path.name,
             ext=path.suffix,
-            storage_path=default_document_folder,
+            storage_path=storage_path,
         )
-        return book
+        return book, success
 
-    def _get_pdf_metadata(self, path: Path, pages_to_read: int = 10) -> dict:
+    def _get_pdf_metadata(self, path: Path, pages_to_read: int = 10) -> tuple[dict, bool]:
         re_ISBN = re.compile(r'(978-?|979-?)?\d(-?\d){9}')
         isbn10 = ""
         isbn13 = ""
@@ -81,7 +100,7 @@ class MetadataFetcher:
             metadata = isbnlib.meta(isbn13.replace("-", ""))
             if metadata:
                 self.logger.info(f"Metadata found for {path.name}.")
-                return metadata
+                return metadata, True
             else:
                 self.logger.warning(f"Metadata could not be found with ISBN-13 for {path.name}. Trying ISBN-10...")
         else:
@@ -92,6 +111,7 @@ class MetadataFetcher:
             metadata = isbnlib.meta(isbn10.replace("-", ""))
             if metadata:
                 self.logger.info(f"Metadata found for {path.name}.")
-                return metadata
-        
-        self.logger.error(f"Metadata not fount for {path.name}")
+                return metadata, True
+        else:
+            self.logger.warning(f"ISBN-10 not found as well. Manual Metadata is required.")
+            return {}, False

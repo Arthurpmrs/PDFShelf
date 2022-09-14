@@ -31,8 +31,17 @@ def main2():
     print(book)
     print(book.folder)
 
+def main3():
+    folderpath = Path("/home/arthurpmrs/Documents/Library/Livros")
+    fetcher = MetadataFetcher()
+    books, success_count = fetcher.fetch_metadata_from_folder(folderpath)
+    print(f"Metadata successful fetching: {success_count}")
+    for book, success in books:
+        print(success)
+        print(book)
+        print(" ")
 
 
 
 if __name__ == "__main__":
-    main2()
+    main3()

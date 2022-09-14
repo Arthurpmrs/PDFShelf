@@ -27,6 +27,7 @@ class Document:
     added_date: datetime = datetime.now()
     hash_id: str = ""
     active: bool = True
+    confirmed: bool = False
 
     def __post_init__(self):
         if isinstance(self.storage_path, str):
