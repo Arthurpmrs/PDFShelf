@@ -41,7 +41,16 @@ def main3():
         print(book)
         print(" ")
 
+def get_epub():
+    folderpath = Path("/home/arthurpmrs/Documents/Library/epubs")
+    fetcher = MetadataFetcher()
+    books, success_count  = fetcher.get_books_from_folder(folderpath)
+    print(f"Metadata successful fetching: {success_count}")
+    for book, success in books:
+        print(success)
+        print(book)
+        print(" ")
 
 
 if __name__ == "__main__":
-    main3()
+    get_epub()
