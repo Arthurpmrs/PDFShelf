@@ -13,7 +13,7 @@ from .utilities import validade_isbn10, validate_isbn13
 
 class MetadataFetcher:
     FORMATS = [".pdf", ".epub"]
-    RE_ISBN = re.compile(r'(978-?|979-?)?\d(-?\d){9}')
+    RE_ISBN = re.compile(r'(978-?|979-?)?\d(-?[\dxX]){9}')
 
     def __init__(self, pages_to_read: int = 10):
         self.setup_logging()
@@ -33,6 +33,10 @@ class MetadataFetcher:
         self.logger.addHandler(f_handler)
 
     def get_books_from_folder(self, folderpath: Path) -> tuple[list[Book], int]:
+        if not folderpath.is_dir():
+            self.logger.error(f"Folder: {folderpath} does not exists.")
+            raise FileNotFoundError("This directory does not exist.")
+        
         books = []
         success_count = 0
         folder = {"name": folderpath.name, "path": folderpath}
@@ -44,6 +48,10 @@ class MetadataFetcher:
         return books, success_count
 
     def get_book_from_file(self, path: Path, folder: dict = None) -> Book:
+        if not path.is_file():
+            self.logger.error(f"File: {path} does not exists.")
+            raise FileNotFoundError("This file does not exists.")
+
         metadata, success = self._fetch_metadata(path)
 
         if folder:
@@ -63,6 +71,7 @@ class MetadataFetcher:
             lang=metadata.get("Language", ""),
             isbn13=metadata.get("ISBN-13", None),
             isbn10=metadata.get("ISBN-10", None),
+            parsed_isbn=metadata.get("parsed_isbn", None),
             folder=folder,
             size=os.path.getsize(path),
             filename=path.name,
@@ -80,22 +89,25 @@ class MetadataFetcher:
             self.logger.error(f"{path.name} has a not supported format.")
             raise FormatNotSupportedError("Only PDFs and EPUBs are supported.")
 
+        self.logger.info(f"Fetching data for {path.name}.")
         if isbn13:
-            self.logger.info(f"ISBN-13: {isbn13} found for {path.name}.")
+            self.logger.info(f"ISBN-13: {isbn13} found!.")
             metadata = isbnlib.meta(isbn13.replace("-", ""))
             if metadata:
-                self.logger.info(f"Metadata found for {path.name}.")
+                self.logger.info(f"Metadata found with ISBN-13!")
+                metadata.update({"parsed_isbn": isbn13})
                 return metadata, True
             else:
-                self.logger.warning(f"Metadata could not be found with ISBN-13 for {path.name}. Trying ISBN-10...")
+                self.logger.warning(f"Metadata could not be found with ISBN-13. Trying ISBN-10...")
         else:
             self.logger.warning(f"ISBN-13 not found. Trying ISBN-10...")
         
         if isbn10:
-            self.logger.info(f"ISBN-10: {isbn10} found for {path.name}.")
+            self.logger.info(f"ISBN-10: {isbn10} found!")
             metadata = isbnlib.meta(isbn10.replace("-", ""))
             if metadata:
-                self.logger.info(f"Metadata found for {path.name}.")
+                self.logger.info(f"Metadata found with ISBN-10!")
+                metadata.update({"parsed_isbn": isbn10})
                 return metadata, True
         else:
             self.logger.warning(f"ISBN-10 not found as well. Manual Metadata is required.")

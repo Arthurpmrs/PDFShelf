@@ -32,9 +32,9 @@ def main2():
     print(book.folder)
 
 def main3():
-    folderpath = Path("/home/arthurpmrs/Documents/Library/Livros")
+    folderpath = Path("/home/arthurpmrs/Downloads/test_data/selected")
     fetcher = MetadataFetcher()
-    books, success_count = fetcher.fetch_metadata_from_folder(folderpath)
+    books, success_count = fetcher.get_books_from_folder(folderpath)
     print(f"Metadata successful fetching: {success_count}")
     for book, success in books:
         print(success)
@@ -53,4 +53,4 @@ def get_epub():
 
 
 if __name__ == "__main__":
-    get_epub()
+    main3()

@@ -2,7 +2,10 @@ def validade_isbn10(isbn: str) -> bool:
     """Checks if a number sequence is a valid ISBN-10. Ref: https://en.wikipedia.org/wiki/ISBN"""
     s = 0
     for i, char in enumerate(isbn):
-        s += (10 - i) * int(char)
+        if char.lower() == "x":
+            s += (10 - i) * 10
+        else:
+            s += (10 - i) * int(char)
 
     if s % 11 == 0:
         is_valid = True

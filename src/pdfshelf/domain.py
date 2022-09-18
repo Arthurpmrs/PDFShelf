@@ -51,6 +51,7 @@ class Book(Document):
     publisher: str
     isbn10: str = None
     isbn13: str = None
+    parsed_isbn: str = None
 
 
 @dataclass
