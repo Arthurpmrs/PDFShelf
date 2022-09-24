@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from pdfshelf.domain import Book
 from pdfshelf.fetchmetadata import MetadataFetcher
@@ -10,7 +11,7 @@ def setup_logging():
     f_format = logging.Formatter('%(asctime)s %(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s', "%Y-%m-%d %H:%M")
     s_format = logging.Formatter('%(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s')
 
-    f_handler = logging.FileHandler(config_folder / "pdfshelf_dependencies.log")
+    f_handler = RotatingFileHandler(config_folder / "pdfshelf_dependencies.log", maxBytes=5000, backupCount=25)
     f_handler.setLevel(logging.DEBUG)
     f_handler.setFormatter(f_format)
 
