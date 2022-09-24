@@ -19,21 +19,8 @@ class MetadataFetcher:
     RE_ISBN = re.compile(r'(978-?|979-?)?\d(-?[\dxX]){9}')
 
     def __init__(self, pages_to_read: int = 10):
-        self.setup_logging()
-        self.pages_to_read = pages_to_read
-
-    def setup_logging(self):
         self.logger = logging.getLogger(__name__)
-
-        if self.logger.hasHandlers():
-            self.logger.handlers = []
-            
-        f_handler = logging.FileHandler(config_folder / "pdfshelf.log")
-        self.logger.setLevel(logging.DEBUG)
-
-        f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        f_handler.setFormatter(f_format)
-        self.logger.addHandler(f_handler)
+        self.pages_to_read = pages_to_read
 
     def get_books_from_folder(self, folderpath: Path) -> tuple[list[Book], int]:
         if not folderpath.is_dir():
@@ -92,34 +79,32 @@ class MetadataFetcher:
             self.logger.error(f"{path.name} has a not supported format.")
             raise FormatNotSupportedError("Only PDFs and EPUBs are supported.")
 
-        self.logger.info(f"Fetching data for {path.name}.")
+        self.logger.info(f"Fetching data for {path.name}")
         if isbn13:
             try:
                 metadata = isbnlib.meta(isbn13.replace("-", ""))
             except ISBNLibException:
-                self.logger.error(f"ISBNLib metadata fetching failed!")
-                self.logger.error(traceback.format_exc())
+                self.logger.error(f"ISBNLib metadata fetching failed!\n{traceback.format_exc()}")
                 return {}, False
             
-            self.logger.info(f"ISBN-13: {isbn13} found!.")
+            self.logger.info(f"ISBN-13: {isbn13} found.")
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-13!")
                 metadata.update({"parsed_isbn": isbn13})
                 return metadata, True
             else:
-                self.logger.warning(f"Metadata could not be found with ISBN-13. Trying ISBN-10...")
+                self.logger.info(f"Metadata could not be found with ISBN-13. Trying ISBN-10...")
         else:
-            self.logger.warning(f"ISBN-13 not found. Trying ISBN-10...")
+            self.logger.info(f"ISBN-13 not found. Trying ISBN-10...")
         
         if isbn10:
             try:
                 metadata = isbnlib.meta(isbn10.replace("-", ""))
             except ISBNLibException:
-                self.logger.error(f"ISBNLib metadata fetching failed!")
-                self.logger.error(traceback.format_exc())
+                self.logger.error(f"ISBNLib metadata fetching failed!\n{traceback.format_exc()}")
                 return {}, False
             
-            self.logger.info(f"ISBN-10: {isbn10} found!")
+            self.logger.info(f"ISBN-10: {isbn10} found.")
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-10!")
                 metadata.update({"parsed_isbn": isbn10})
@@ -135,8 +120,7 @@ class MetadataFetcher:
         try:
             reader = PdfReader(path)
         except PdfReadError:
-            self.logger.error(f"PDF file is probably corrupted!")
-            self.logger.error(traceback.format_exc())
+            self.logger.error(f"PDF file is probably corrupted!\n{traceback.format_exc()}")
             return "", ""
 
         pages = reader.pages[0:self.pages_to_read]
