@@ -1,5 +1,7 @@
 # My things
 .prototype
+test/assets
+test/report.html
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

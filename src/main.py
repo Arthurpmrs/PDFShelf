@@ -1,6 +1,7 @@
 from pathlib import Path
 from pdfshelf.domain import Book
 from pdfshelf.fetchmetadata import MetadataFetcher
+
 def main1():
     folder = {
         "name": "foldinha",

@@ -3,9 +3,12 @@ import re
 import logging
 import isbnlib
 import ebooklib
+import traceback
+from isbnlib import ISBNLibException
 from ebooklib import epub
 from pathlib import Path
 from PyPDF2 import PdfReader
+from PyPDF2.errors import PdfReadError
 from .domain import Book, Paper
 from .config import config_folder, default_document_folder
 from .exceptions import FormatNotSupportedError
@@ -47,7 +50,7 @@ class MetadataFetcher:
                 success_count += 1 if book_data[1] else 0
         return books, success_count
 
-    def get_book_from_file(self, path: Path, folder: dict = None) -> Book:
+    def get_book_from_file(self, path: Path, folder: dict = None) -> tuple[Book, bool]:
         if not path.is_file():
             self.logger.error(f"File: {path} does not exists.")
             raise FileNotFoundError("This file does not exists.")
@@ -91,8 +94,14 @@ class MetadataFetcher:
 
         self.logger.info(f"Fetching data for {path.name}.")
         if isbn13:
+            try:
+                metadata = isbnlib.meta(isbn13.replace("-", ""))
+            except ISBNLibException:
+                self.logger.error(f"ISBNLib metadata fetching failed!")
+                self.logger.error(traceback.format_exc())
+                return {}, False
+            
             self.logger.info(f"ISBN-13: {isbn13} found!.")
-            metadata = isbnlib.meta(isbn13.replace("-", ""))
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-13!")
                 metadata.update({"parsed_isbn": isbn13})
@@ -103,8 +112,14 @@ class MetadataFetcher:
             self.logger.warning(f"ISBN-13 not found. Trying ISBN-10...")
         
         if isbn10:
+            try:
+                metadata = isbnlib.meta(isbn10.replace("-", ""))
+            except ISBNLibException:
+                self.logger.error(f"ISBNLib metadata fetching failed!")
+                self.logger.error(traceback.format_exc())
+                return {}, False
+            
             self.logger.info(f"ISBN-10: {isbn10} found!")
-            metadata = isbnlib.meta(isbn10.replace("-", ""))
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-10!")
                 metadata.update({"parsed_isbn": isbn10})
@@ -116,7 +131,14 @@ class MetadataFetcher:
     def _get_isbn_from_pdf(self, path:Path) -> tuple[str, str]:
         isbn10 = ""
         isbn13 = ""
-        reader = PdfReader(path)
+        
+        try:
+            reader = PdfReader(path)
+        except PdfReadError:
+            self.logger.error(f"PDF file is probably corrupted!")
+            self.logger.error(traceback.format_exc())
+            return "", ""
+
         pages = reader.pages[0:self.pages_to_read]
         for i, page in enumerate(pages):
             text = page.extract_text()
