@@ -107,7 +107,7 @@ class TestMetadataFetcher:
 
     ## Test epub with no valid isbn
 
-    def test_get_book_from_file_corrupted_file(self, rootdir, mocker) -> None:
+    def test_get_book_from_file_corrupted_pdf(self, rootdir, mocker) -> None:
         test_file = os.path.join(rootdir, 'test_data/corrupted.pdf')
 
         book, success = self.fetch.get_book_from_file(Path(test_file))
