@@ -6,6 +6,7 @@ import ebooklib
 import traceback
 from isbnlib import ISBNLibException
 from ebooklib import epub
+from ebooklib.epub import EpubException
 from pathlib import Path
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
@@ -81,13 +82,14 @@ class MetadataFetcher:
 
         self.logger.info(f"Fetching data for {path.name}")
         if isbn13:
+            self.logger.info(f"ISBN-13: {isbn13} found.")
+
             try:
                 metadata = isbnlib.meta(isbn13.replace("-", ""))
             except ISBNLibException:
                 self.logger.error(f"ISBNLib metadata fetching failed!\n{traceback.format_exc()}")
                 return {}, False
             
-            self.logger.info(f"ISBN-13: {isbn13} found.")
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-13!")
                 metadata.update({"parsed_isbn": isbn13})
@@ -98,17 +100,20 @@ class MetadataFetcher:
             self.logger.info(f"ISBN-13 not found. Trying ISBN-10...")
         
         if isbn10:
+            self.logger.info(f"ISBN-10: {isbn10} found.")
             try:
                 metadata = isbnlib.meta(isbn10.replace("-", ""))
             except ISBNLibException:
                 self.logger.error(f"ISBNLib metadata fetching failed!\n{traceback.format_exc()}")
                 return {}, False
-            
-            self.logger.info(f"ISBN-10: {isbn10} found.")
+
             if metadata:
                 self.logger.info(f"Metadata found with ISBN-10!")
                 metadata.update({"parsed_isbn": isbn10})
                 return metadata, True
+            else:
+                self.logger.warning(f"Metadata could not be found. Manual Metadata is required.")
+                return {}, False
         else:
             self.logger.warning(f"ISBN-10 not found as well. Manual Metadata is required.")
             return {}, False
@@ -142,8 +147,12 @@ class MetadataFetcher:
     def _get_isbn_from_epub(self, path:Path) -> tuple[str, str]:
         isbn10 = ""
         isbn13 = ""
-        book = epub.read_epub(path)
-
+        try:
+            book = epub.read_epub(path)
+        except EpubException:
+            self.logger.error(f"EPUB file is probably corrupted!\n{traceback.format_exc()}")
+            return "", ""
+        
         # Get ISBN from metadata.
         identifier = book.get_metadata("DC", "identifier")[0][0]
         filtered_identifier = "".join(filter(str.isdigit, identifier))
