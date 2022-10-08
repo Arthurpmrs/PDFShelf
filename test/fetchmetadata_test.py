@@ -35,6 +35,23 @@ class TestMetadataFetcher:
             self.fetch.get_book_from_file(non_existing_epub)
 
     ## Test pdf and epub with None metadata from isbnlib
+    def test_none_metadata_retrieved(self, rootdir, mocker) -> None:
+        files = [
+            os.path.join(rootdir, 'test_data/how_to_code_in_python_isbn13.pdf'),
+            os.path.join(rootdir, 'test_data/craft-isbn-13.epub'),
+            os.path.join(rootdir, 'test_data/php5_isbn10.pdf'),
+            os.path.join(rootdir, 'test_data/git-magic-isbn-10.epub')
+        ]
+        
+        mocker.patch(
+            "pdfshelf.fetchmetadata.isbnlib.meta",
+            return_value=None
+        )
+        for file in files:
+            book, success = self.fetch.get_book_from_file(Path(file))
+            assert success == False
+            assert book.title == ""
+            assert book.isbn13 == None
     
     def test_get_book_from_file_not_supported_extenstion(self, tmp_path) -> None:
         tmp_folder = tmp_path / "test_folder"
