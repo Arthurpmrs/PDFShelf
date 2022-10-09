@@ -34,7 +34,6 @@ class TestMetadataFetcher:
             self.fetch.get_book_from_file(non_existing_pdf)
             self.fetch.get_book_from_file(non_existing_epub)
 
-    ## Test pdf and epub with None metadata from isbnlib
     def test_none_metadata_retrieved(self, rootdir, mocker) -> None:
         files = [
             os.path.join(rootdir, 'test_data/how_to_code_in_python_isbn13.pdf'),
