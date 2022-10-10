@@ -65,6 +65,7 @@ class MetadataFetcher:
             parsed_isbn=metadata.get("parsed_isbn", None),
             folder=folder,
             size=os.path.getsize(path),
+            tags=[],
             filename=path.name,
             ext=path.suffix,
             storage_path=storage_path,

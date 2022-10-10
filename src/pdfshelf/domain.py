@@ -24,6 +24,7 @@ class Document:
     storage_path: Path
     folder: Folder
     size: float
+    tags: list[str]
     added_date: datetime = datetime.now()
     hash_id: str = ""
     active: bool = True
