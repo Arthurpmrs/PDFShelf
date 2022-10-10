@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
-
+from typing import Any
 @dataclass
 class Folder:
     name:str
@@ -16,6 +16,13 @@ class Folder:
 
         if isinstance(self.added_date, str):
             self.added_date = datetime.fromisoformat(self.added_date)
+        
+    def get_parsed_dict(self) -> dict[str, Any]:
+        d = { **self.__dict__ }
+        d["path"] = str(d["path"])
+        d["added_date"] = str(d["added_date"])
+        d["active"] = 1 if d["active"] else 0
+        return d
 
 @dataclass(kw_only=True)
 class Document:
@@ -50,6 +57,16 @@ class Document:
     def get_absolute_path(self) -> Path:
         return self.folder.path / self.storage_path
 
+    def get_parsed_dict(self) -> tuple[dict[str, Any], dict[str, Any]]:
+        d = { **self.__dict__ }
+        d["authors"] = str(d["authors"])
+        d["storage_path"] = str(d["storage_path"])
+        d["tags"] = str(d["tags"])
+        d["added_date"] = str(d["added_date"])
+        d["active"] = 1 if d["active"] else 0
+        d["confirmed"] = 1 if d["confirmed"] else 0
+        folder = d.pop("folder")
+        return d, folder.get_parsed_dict()
 
 @dataclass
 class Book(Document):
