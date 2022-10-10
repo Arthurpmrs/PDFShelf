@@ -5,6 +5,7 @@ from pdfshelf.domain import Book
 from pdfshelf.fetchmetadata import MetadataFetcher
 from pdfshelf.config import config_folder
 
+from pdfshelf.database import DatabaseConnector
 def setup_logging():
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
@@ -74,7 +75,9 @@ def get_epub():
         print(book)
         print(" ")
 
+def prototype_db():
+    with DatabaseConnector() as con:
+        print("foi")
 
 if __name__ == "__main__":
-    setup_logging()
-    get_epub()
+    prototype_db()
