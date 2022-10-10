@@ -7,11 +7,15 @@ from dataclasses import dataclass
 class Folder:
     name:str
     path: Path
+    added_date: datetime = datetime.now()
     active: bool = True
 
     def __post_init__(self):
         if isinstance(self.path, str):
             self.path = Path(self.path)
+
+        if isinstance(self.added_date, str):
+            self.added_date = datetime.fromisoformat(self.added_date)
 
 @dataclass(kw_only=True)
 class Document:
