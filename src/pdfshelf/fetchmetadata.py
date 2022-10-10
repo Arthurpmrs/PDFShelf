@@ -23,7 +23,7 @@ class MetadataFetcher:
         self.logger = logging.getLogger(__name__)
         self.pages_to_read = pages_to_read
 
-    def get_books_from_folder(self, folderpath: Path) -> tuple[list[Book], int]:
+    def get_books_from_folder(self, folderpath: Path) -> tuple[list[tuple[Book, bool]], int]:
         if not folderpath.is_dir():
             self.logger.error(f"Folder: {folderpath} does not exists.")
             raise FileNotFoundError("This directory does not exist.")
@@ -48,7 +48,7 @@ class MetadataFetcher:
         if folder:
             storage_path = path.relative_to(folder["path"])
         else:
-            storage_path = default_document_folder
+            storage_path = path.name
             folder = {
                 "name": "Default",
                 "path": default_document_folder
