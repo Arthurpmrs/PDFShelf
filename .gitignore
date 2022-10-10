@@ -2,6 +2,7 @@
 .prototype
 test/assets
 test/report.html
+.trash
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

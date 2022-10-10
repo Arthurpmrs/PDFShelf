@@ -1,3 +1,4 @@
+import csv
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -71,13 +72,59 @@ def get_epub():
     books, success_count  = fetcher.get_books_from_folder(folderpath)
     print(f"Metadata successful fetching: {success_count}")
     for book, success in books:
-        print(success)
         print(book)
-        print(" ")
 
 def prototype_db():
     with DatabaseConnector() as con:
         print("foi")
 
+def create_dummie_csv_data():
+    folderpaths =[
+        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/folder-0"),
+        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/folder-1")
+    ]
+    individuals = [
+        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/individuals/Lehman_2017_Mathematics for Computer Science.pdf"),
+        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/individuals/Vince_2020_Foundation mathematics for computer science_A visual approach.pdf")
+    ] 
+
+    fetcher = MetadataFetcher()
+
+    books = []
+    folders = []
+
+    for folderpath in folderpaths:
+        bks, success_count = fetcher.get_books_from_folder(folderpath)
+        for (book, success) in bks:
+            parsed_book, parsed_folder = book.get_parsed_dict()
+            if not parsed_folder in folders:
+                folders.append(parsed_folder)
+
+            parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
+            books.append(parsed_book)
+    
+    for ind in individuals:
+        book, success = fetcher.get_book_from_file(ind)
+        parsed_book, parsed_folder = book.get_parsed_dict()
+        if not parsed_folder in folders:
+            folders.append(parsed_folder)
+
+        parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
+        books.append(parsed_book)
+
+    book_headers = list(parsed_book.keys())
+    folder_headers = list(parsed_folder.keys())
+
+    with open('dummie_book_data.csv', 'w') as csvfile_book:
+        writer = csv.DictWriter(csvfile_book, fieldnames=book_headers)
+        writer.writeheader()
+        writer.writerows(books)
+    
+    with open('dummie_folder_data.csv', 'w') as csvfile_folders:
+        writer = csv.DictWriter(csvfile_folders, fieldnames=folder_headers)
+        writer.writeheader()
+        writer.writerows(folders)
+
+
 if __name__ == "__main__":
-    prototype_db()
+    create_dummie_csv_data()
