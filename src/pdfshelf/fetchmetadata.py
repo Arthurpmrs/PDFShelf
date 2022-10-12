@@ -10,7 +10,7 @@ from ebooklib.epub import EpubException
 from pathlib import Path
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
-from .domain import Book, Paper
+from .domain import Book
 from .config import config_folder, default_document_folder
 from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
@@ -53,15 +53,15 @@ class MetadataFetcher:
                 "name": "Default",
                 "path": default_document_folder
             }
-            
+        
+        year = metadata.get("Year", "0")
         book = Book(
-            title=metadata.get("Title", ""),
-            authors=metadata.get("Authors", ""),
-            year=int(metadata.get("Year", "0")),
-            publisher=metadata.get("Publisher", ""),
-            lang=metadata.get("Language", ""),
+            title=metadata.get("Title", None),
+            authors=metadata.get("Authors", []),
+            year=None if year == "0" else int(year),
+            publisher=metadata.get("Publisher", None),
+            lang=metadata.get("Language", None),
             isbn13=metadata.get("ISBN-13", None),
-            isbn10=metadata.get("ISBN-10", None),
             parsed_isbn=metadata.get("parsed_isbn", None),
             folder=folder,
             size=os.path.getsize(path),

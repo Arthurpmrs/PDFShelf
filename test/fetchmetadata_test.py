@@ -49,7 +49,7 @@ class TestMetadataFetcher:
         for file in files:
             book, success = self.fetch.get_book_from_file(Path(file))
             assert success == False
-            assert book.title == ""
+            assert book.title == None
             assert book.isbn13 == None
     
     def test_get_book_from_file_not_supported_extenstion(self, tmp_path) -> None:
@@ -81,7 +81,6 @@ class TestMetadataFetcher:
 
         assert success == True
         assert book.parsed_isbn == "978-0-9997730-1-7"
-        assert book.isbn10 == None
         assert book.isbn13 == "9780999773017"
         assert book.ext == ".pdf"
 
@@ -105,7 +104,6 @@ class TestMetadataFetcher:
         assert success == True
         assert book.parsed_isbn == "0-131-47149-X"
         assert book.isbn13 == "9780131471498"
-        assert book.isbn10 == None
         assert book.ext == ".pdf"
 
     def test_get_book_from_file_pdf_no_valid_isbn(self, rootdir, mocker) -> None:
@@ -116,7 +114,6 @@ class TestMetadataFetcher:
         assert success == False
         assert book.parsed_isbn == None
         assert book.isbn13 == None
-        assert book.isbn10 == None
         assert book.ext == ".pdf"
 
     def test_get_book_from_file_epub_has_isbn13(self, rootdir, mocker) -> None:
@@ -138,7 +135,6 @@ class TestMetadataFetcher:
 
         assert success == True
         assert book.parsed_isbn == "978-1-4116-8297-9"
-        assert book.isbn10 == None
         assert book.isbn13 == "9781411682979"
         assert book.ext == ".epub"
 
@@ -162,7 +158,6 @@ class TestMetadataFetcher:
         assert success == True
         assert book.parsed_isbn == "1451523343"
         assert book.isbn13 == "9781451523348"
-        assert book.isbn10 == None
         assert book.ext == ".epub"
 
     def test_get_book_from_file_epub_no_valid_isbn(self, rootdir, mocker) -> None:
@@ -173,7 +168,6 @@ class TestMetadataFetcher:
         assert success == False
         assert book.parsed_isbn == None
         assert book.isbn13 == None
-        assert book.isbn10 == None
         assert book.ext == ".epub"
 
     def test_get_book_from_file_corrupted_pdf(self, rootdir) -> None:
@@ -184,7 +178,6 @@ class TestMetadataFetcher:
         assert success == False
         assert book.parsed_isbn == None
         assert book.isbn13 == None
-        assert book.isbn10 == None
 
     def test_get_book_from_file_corrupted_epub(self, rootdir) -> None:
         test_file = os.path.join(rootdir, 'test_data/corrupted.epub')
@@ -194,7 +187,6 @@ class TestMetadataFetcher:
         assert success == False
         assert book.parsed_isbn == None
         assert book.isbn13 == None
-        assert book.isbn10 == None
 
     def test_get_book_from_file_api_failed(self, rootdir, mocker) -> None:
         test_file = os.path.join(rootdir, 'test_data/how_to_code_in_python_isbn13.pdf')
@@ -207,9 +199,8 @@ class TestMetadataFetcher:
         book, success = self.fetch.get_book_from_file(Path(test_file))
 
         assert success == False
-        assert book.title == ""
-        assert book.year == 0
-        assert book.isbn10 == None
+        assert book.title == None
+        assert book.year == None
         assert book.isbn13 == None
         assert book.parsed_isbn == None
 
