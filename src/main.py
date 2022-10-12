@@ -1,4 +1,4 @@
-import csv
+import pickle
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -101,6 +101,7 @@ def create_dummie_csv_data():
                 folders.append(parsed_folder)
 
             parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
+            parsed_book.pop("book_id")
             books.append(parsed_book)
     
     for ind in individuals:
@@ -110,20 +111,13 @@ def create_dummie_csv_data():
             folders.append(parsed_folder)
 
         parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
+        parsed_book.pop("book_id")
         books.append(parsed_book)
 
-    book_headers = list(parsed_book.keys())
-    folder_headers = list(parsed_folder.keys())
+    data = {"books": books, "folders": folders}
 
-    with open('dummie_book_data.csv', 'w') as csvfile_book:
-        writer = csv.DictWriter(csvfile_book, fieldnames=book_headers)
-        writer.writeheader()
-        writer.writerows(books)
-    
-    with open('dummie_folder_data.csv', 'w') as csvfile_folders:
-        writer = csv.DictWriter(csvfile_folders, fieldnames=folder_headers)
-        writer.writeheader()
-        writer.writerows(folders)
+    with open('dummie_data.pkl', 'wb') as outp:
+        pickle.dump(data, outp, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == "__main__":
