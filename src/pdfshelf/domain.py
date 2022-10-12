@@ -68,6 +68,9 @@ class Book:
         
         if isinstance(self.active, int):
             self.active = True if self.active == 1 else False
+       
+        if isinstance(self.confirmed, int):
+            self.confirmed = True if self.confirmed == 1 else False
         
         if self.hash_id is None:
             self.hash_id = hashlib.md5(self.filename.encode()).hexdigest()
