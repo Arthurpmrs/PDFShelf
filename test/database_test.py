@@ -2,6 +2,7 @@ import os
 import pytest
 import sqlite3
 import pickle
+from datetime import datetime
 from pathlib import Path
 from pdfshelf.database import BookDBHandler, FolderDBHandler
 from pdfshelf.domain import Book
@@ -93,38 +94,63 @@ def setup_db(db_con, rootdir):
 class TestBookDBHandler:
 
     @pytest.mark.usefixtures("setup_db")
+    def test_insert_book(self, db_con, rootdir) -> None:
+        handler = BookDBHandler(db_con)
+
+        folder = {
+            "name": "Default",
+            "path": Path(rootdir)
+        }
+        book = Book(
+            title="Automate the boring stuff with Python",
+            authors=["Al Sweigart"],
+            year=2015,
+            publisher="No Starch Press",
+            lang="en",
+            isbn13="9781593275990",
+            parsed_isbn="9781593275990",
+            folder=folder,
+            size=78000,
+            tags=[],
+            filename="automate-the-boring-stuff.pdf",
+            ext=".pdf",
+            storage_path="pythonbooks/automate-the-boring-stuff.pdf",
+        )
+
+        handler.insert_book(book)
+
+        cur = db_con.cursor()
+        count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
+
+        assert count == 14
+
+
+    @pytest.mark.usefixtures("setup_db")
     def test_load_all_books(self, db_con) -> None:
         handler = BookDBHandler(db_con)
         books = handler.load_books()
+        
+        for b in books.values():
+            book = b
+            break
 
         assert len(books) == 13
-    
+        assert isinstance(book.authors, list) == True
+        assert isinstance(book.tags, list) == True
+        assert isinstance(book.added_date, datetime) == True
+        assert isinstance(book.confirmed, bool) == True
+        assert isinstance(book.active, bool) == True
+        assert isinstance(book.storage_path, Path) == True
+        assert isinstance(book.folder.path, Path) == True
+        assert isinstance(book.folder.active, bool) == True
+        assert isinstance(book.folder.added_date, datetime) == True
+
+
     # @pytest.mark.usefixtures("setup_db")
-    # def test_insert_book(db_con, rootdir) -> None:
-    #     handler = BookDBHandler(db_con)
-
-    #     folder = {
-    #         "name": "Default",
-    #         "path": Path(rootdir)
-    #     }
-    #     book = Book(
-    #         title="Automate the boring stuff with Python",
-    #         authors=["Al Sweigart"],
-    #         year=2015,
-    #         publisher="No Starch Press",
-    #         lang="en",
-    #         isbn13="9781593275990",
-    #         isbn10=None,
-    #         parsed_isbn="9781593275990",
-    #         folder=folder,
-    #         size=78000,
-    #         tags=[],
-    #         filename="automate-the-boring-stuff.pdf",
-    #         ext=".pdf",
-    #         storage_path="pythonbooks/automate-the-boring-stuff.pdf",
-    #     )
-
-    #     handler.insert_book(book)
+    # def test_load_all_books_even_without_folder(self, db_con) -> None:
+    #     cur = db_con.cursor()
+        
+    #     cur.execute()
 
         
 

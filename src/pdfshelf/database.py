@@ -11,6 +11,7 @@ class DatabaseConnector:
 
     def __init__(self):
         self.con = sqlite3.connect(self.DB_PATH)
+        self.con.row_factory = sqlite3.Row
         self.create_tables()
 
     def __enter__(self):
@@ -64,19 +65,22 @@ class BookDBHandler:
     def insert_books(self, books: list[Book]) -> None:
         pass
 
-    def load_books(self, sorting_key: str = "title", filter_key: str = "no_filter", filter_content: str = None) -> dict[int, Book]:
+    def load_books(self, sorting_key: str = "no_sorting", filter_key: str = "no_filter", filter_content: str = None) -> dict[int, Book]:
         cur = self.con.cursor()
 
-        res = cur.execute("""SELECT * FROM Book""")
+        res = cur.execute("""SELECT * FROM Book
+                             LEFT JOIN Folder 
+                             ON Book.folder_id == Folder.folder_id""")        
         books = {}
         for row in res.fetchall():
-            # procurar como fazer query dos dois ao mesmo tempo
-            folder_res = cur.execute("""SELECT * FROM Folder WHERE folder_id = ?""", (row["folder_id"],)).fetchone()
-            folder = Folder(**folder_res)
+            book_dict = {k:v for k, v in zip(row.keys()[0:18], row[0:18])}
+            book_dict.pop("folder_id")
 
-            cleared_row = {k:row[k] for k in row.keys() if k != "folder_id"}
+            folder_dict = {k:v for k, v in zip(row.keys()[18:23], row[18:23])}
+            folder = Folder(**folder_dict)
+
             books.update(
-                {row["book_id"]: Book(**cleared_row, folder=folder)}
+                {row["book_id"]: Book(**book_dict, folder=folder)}
             )
         return books
 
