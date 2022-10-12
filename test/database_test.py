@@ -1,7 +1,7 @@
 import os
 import pytest
 import sqlite3
-import csv
+import pickle
 from pathlib import Path
 from pdfshelf.database import BookDBHandler, FolderDBHandler
 from pdfshelf.domain import Book
@@ -13,6 +13,7 @@ def rootdir():
 @pytest.fixture
 def db_con():
     con = sqlite3.connect(':memory:')
+    con.row_factory = sqlite3.Row
     yield con
     con.close()
 
@@ -21,6 +22,7 @@ def db_con():
 def setup_db(db_con, rootdir):
     cur = db_con.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS Folder (
+                        folder_id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL,
                         path TEXT NOT NULL,
                         added_date TEXT,
@@ -28,7 +30,8 @@ def setup_db(db_con, rootdir):
                         )""")
         
     cur.execute("""CREATE TABLE IF NOT EXISTS Book (
-                    title TEXT NOT NULL,
+                    book_id INTEGER PRIMARY KEY,
+                    title TEXT,
                     authors TEXT,
                     year INTEGER,
                     lang TEXT,
@@ -41,61 +44,52 @@ def setup_db(db_con, rootdir):
                     added_date TEXT NOT NULL,
                     hash_id TEXT NOT NULL UNIQUE,
                     publisher TEXT,
-                    isbn10 TEXT,
                     isbn13 TEXT,
                     parsed_isbn TEXT,
                     active INTEGER NOT NULL,
                     confirmed INTEGER NOT NULL,
-                    FOREIGN KEY (folder_id) REFERENCES Folder (rowid)
+                    FOREIGN KEY (folder_id) REFERENCES Folder (folder_id)
                     )""")
 
-    book_data_csv = Path(rootdir) / "test_data" / "dummie_book_data.csv"
-    with open(book_data_csv, newline='\n') as f:
-        reader = csv.DictReader(f, delimiter=',')
-        for row in reader:
-            row["year"] = int(row["year"])
-            row["folder_id"] = int(row["folder_id"])
-            row["active"] = int(row["active"])
-            row["confirmed"] = int(row["confirmed"])
-            tup_from_row = tuple(row.values())
-            cur.execute("""INSERT INTO Book VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", 
-                        (
-                            row["title"],
-                            row["authors"],
-                            row["year"],
-                            row["lang"],
-                            row["filename"],
-                            row["ext"],
-                            row["storage_path"],
-                            row["folder_id"],
-                            row["size"],
-                            row["tags"],
-                            row["added_date"],
-                            row["hash_id"],
-                            row["publisher"],
-                            row["isbn10"],
-                            row["isbn13"],
-                            row["parsed_isbn"],
-                            row["active"],
-                            row["confirmed"]
-                        ))
-            db_con.commit()
+    pkl_data = Path(rootdir) / "test_data" / "dummie_data.pkl"
+    
+    with open(pkl_data, 'rb') as inp:
+        data = pickle.load(inp)
+        books = data["books"]
+        folders = data["folders"]
 
+    for book in books:
+        cur.execute("""INSERT INTO Book VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", 
+                            (
+                                book["title"],
+                                book["authors"],
+                                book["year"],
+                                book["lang"],
+                                book["filename"],
+                                book["ext"],
+                                book["storage_path"],
+                                book["folder_id"],
+                                book["size"],
+                                book["tags"],
+                                book["added_date"],
+                                book["hash_id"],
+                                book["publisher"],
+                                book["isbn13"],
+                                book["parsed_isbn"],
+                                book["active"],
+                                book["confirmed"]
+                            ))
+        db_con.commit()
 
-    folder_data_csv = Path(rootdir) / "test_data" / "dummie_folder_data.csv"
-    with open(folder_data_csv, newline='\n') as f:
-        reader = csv.DictReader(f, delimiter=',')
-        for row in reader:
-            row["active"] = int(row["active"])
-            tup_from_row = tuple(row.values())
-            cur.execute("""INSERT INTO Folder VALUES(?, ?, ?, ?)""", 
+    for folder in folders:
+        cur.execute("""INSERT INTO Folder VALUES(NULL, ?, ?, ?, ?)""", 
                         (
-                            row["name"],
-                            row["path"],
-                            row["added_date"],
-                            row["active"]
+                            folder["name"],
+                            folder["path"],
+                            folder["added_date"],
+                            folder["active"]
                         ))
-            db_con.commit()
+        db_con.commit()
 class TestBookDBHandler:
 
     @pytest.mark.usefixtures("setup_db")
