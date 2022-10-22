@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 @dataclass
 class Folder:
-    name:str
+    name: str
     path: Path
     added_date: datetime = datetime.now()
     folder_id: int = None
@@ -87,4 +87,5 @@ class Book:
         d["active"] = 1 if d["active"] else 0
         d["confirmed"] = 1 if d["confirmed"] else 0
         folder = d.pop("folder")
+        d["folder_id"] = folder.folder_id
         return d, folder.get_parsed_dict()
