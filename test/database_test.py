@@ -4,8 +4,9 @@ import sqlite3
 import pickle
 from datetime import datetime
 from pathlib import Path
-from pdfshelf.database import BookDBHandler, FolderDBHandler
+from pdfshelf.database import BookDBHandler, DatabaseConnector
 from pdfshelf.domain import Book
+from pdfshelf.config import default_document_folder
 
 @pytest.fixture
 def rootdir():
@@ -22,36 +23,7 @@ def db_con():
 @pytest.fixture
 def setup_db(db_con, rootdir):
     cur = db_con.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS Folder (
-                        folder_id INTEGER PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        path TEXT NOT NULL,
-                        added_date TEXT,
-                        active INTEGER NOT NULL
-                        )""")
-        
-    cur.execute("""CREATE TABLE IF NOT EXISTS Book (
-                    book_id INTEGER PRIMARY KEY,
-                    title TEXT,
-                    authors TEXT,
-                    year INTEGER,
-                    lang TEXT,
-                    filename TEXT NOT NULL,
-                    ext TEXT NOT NULL,
-                    storage_path TEXT NOT NULL,
-                    folder_id INTEGER NOT NULL,
-                    size REAL NOT NULL,
-                    tags TEXT,
-                    added_date TEXT NOT NULL,
-                    hash_id TEXT NOT NULL UNIQUE,
-                    publisher TEXT,
-                    isbn13 TEXT,
-                    parsed_isbn TEXT,
-                    active INTEGER NOT NULL,
-                    confirmed INTEGER NOT NULL,
-                    FOREIGN KEY (folder_id) REFERENCES Folder (folder_id)
-                    )""")
-
+    DatabaseConnector.create_tables(db_con)  
     pkl_data = Path(rootdir) / "test_data" / "dummie_data.pkl"
     
     with open(pkl_data, 'rb') as inp:
@@ -60,46 +32,23 @@ def setup_db(db_con, rootdir):
         folders = data["folders"]
 
     for book in books:
-        cur.execute("""INSERT INTO Book VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", 
-                            (
-                                book["title"],
-                                book["authors"],
-                                book["year"],
-                                book["lang"],
-                                book["filename"],
-                                book["ext"],
-                                book["storage_path"],
-                                book["folder_id"],
-                                book["size"],
-                                book["tags"],
-                                book["added_date"],
-                                book["hash_id"],
-                                book["publisher"],
-                                book["isbn13"],
-                                book["parsed_isbn"],
-                                book["active"],
-                                book["confirmed"]
-                            ))
+        cur.execute("""INSERT INTO Book VALUES(NULL, :title, :authors, :year, :lang, :filename, :ext, :storage_path,
+                                               :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
+                                               :parsed_isbn, :active, :confirmed)""", book)
         db_con.commit()
 
     for folder in folders:
-        cur.execute("""INSERT INTO Folder VALUES(NULL, ?, ?, ?, ?)""", 
-                        (
-                            folder["name"],
-                            folder["path"],
-                            folder["added_date"],
-                            folder["active"]
-                        ))
+        cur.execute("""INSERT INTO Folder VALUES(NULL, :name, :path, :added_date, :active)""", folder)
         db_con.commit()
 class TestBookDBHandler:
 
     @pytest.mark.usefixtures("setup_db")
-    def test_insert_book(self, db_con, rootdir) -> None:
+    def test_insert_new_book_existing_folder(self, db_con) -> None:
         handler = BookDBHandler(db_con)
 
         folder = {
             "name": "Default",
-            "path": Path(rootdir)
+            "path": default_document_folder
         }
         book = Book(
             title="Automate the boring stuff with Python",
@@ -120,9 +69,11 @@ class TestBookDBHandler:
         handler.insert_book(book)
 
         cur = db_con.cursor()
-        count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
+        book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
+        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
 
-        assert count == 14
+        assert book_count == 14
+        assert folder_count == 3
 
 
     @pytest.mark.usefixtures("setup_db")
