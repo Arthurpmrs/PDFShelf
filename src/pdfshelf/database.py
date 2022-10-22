@@ -12,7 +12,7 @@ class DatabaseConnector:
     def __init__(self):
         self.con = sqlite3.connect(self.DB_PATH)
         self.con.row_factory = sqlite3.Row
-        self.create_tables()
+        DatabaseConnector.create_tables(self.con)
 
     def __enter__(self):
         return self.con
@@ -20,19 +20,20 @@ class DatabaseConnector:
     def __exit__(self, ctx_type, ctx_value, ctx_traceback):
         self.con.close()
 
-    def create_tables(self) -> None:
-        cur = self.con.cursor()
+    @staticmethod
+    def create_tables(con) -> None:
+        cur = con.cursor()
         cur.execute("""CREATE TABLE IF NOT EXISTS Folder (
-                        folder_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        path TEXT NOT NULL,
+                        folder_id INTEGER PRIMARY KEY,
+                        name TEXT NOT NULL UNIQUE,
+                        path TEXT NOT NULL UNIQUE,
                         added_date TEXT,
                         active INTEGER NOT NULL
                         )""")
         
         cur.execute("""CREATE TABLE IF NOT EXISTS Book (
-                        book_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        title TEXT NOT NULL,
+                        book_id INTEGER PRIMARY KEY,
+                        title TEXT,
                         authors TEXT,
                         year INTEGER,
                         lang TEXT,
@@ -45,13 +46,13 @@ class DatabaseConnector:
                         added_date TEXT NOT NULL,
                         hash_id TEXT NOT NULL UNIQUE,
                         publisher TEXT,
-                        isbn10 TEXT,
                         isbn13 TEXT,
                         parsed_isbn TEXT,
                         active INTEGER NOT NULL,
                         confirmed INTEGER NOT NULL,
                         FOREIGN KEY (folder_id) REFERENCES Folder (folder_id)
                         )""")
+    
 
 
 class BookDBHandler:
@@ -60,8 +61,19 @@ class BookDBHandler:
         self.con = con
     
     def insert_book(self, book: Book) -> None:
-        pass
+        cur = self.con.cursor()
 
+        parsed_book, parsed_folder = book.get_parsed_dict()
+
+        cur.execute("""INSERT OR IGNORE INTO Folder VALUES(:folder_id, :name, :path, :added_date, :active)""", parsed_folder)
+
+        if parsed_book["folder_id"] is None:
+            parsed_book["folder_id"] = cur.lastrowid 
+
+        cur.execute("""INSERT OR IGNORE INTO Book VALUES(:book_id, :title, :authors, :year, :lang, :filename, :ext, :storage_path, 
+                                               :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
+                                               :parsed_isbn, :active, :confirmed)""", parsed_book)
+        
     def insert_books(self, books: list[Book]) -> None:
         pass
 
