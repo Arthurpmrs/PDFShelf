@@ -62,10 +62,13 @@ class BookDBHandler:
         self.con = con
     
     def insert_book(self, book: Book) -> tuple[int, int]:
-        cur = self.con.cursor()
-        book_id, folder_id = self._insert_single_book(book, cur)
-        self.con.commit()
-
+        try: 
+            cur = self.con.cursor()
+            book_id, folder_id = self._insert_single_book(book, cur)
+            self.con.commit() 
+        except sqlite3.Error:
+            self.con.rollback()
+            return -1, -1
         return book_id, folder_id
 
     def insert_books(self, books: list[Book]) -> None:
@@ -73,12 +76,14 @@ class BookDBHandler:
             return
         
         self.con.isolation_level = None
-        cur = self.con.cursor()
-        
-        cur.execute("BEGIN")
-        for book in books:
-            self._insert_single_book(book, cur)
-        self.con.commit()
+        try: 
+            cur = self.con.cursor()
+            cur.execute("BEGIN")
+            for book in books:
+                self._insert_single_book(book, cur)
+            self.con.commit()
+        except sqlite3.Error:
+            self.con.rollback()
         
 
     def _insert_single_book(self, book: Book, cur: sqlite3.Cursor) -> tuple[int, int]:
