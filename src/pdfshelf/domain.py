@@ -7,10 +7,10 @@ from typing import Any
 @dataclass
 class Folder:
     name: str
-    path: Path
-    added_date: datetime = datetime.now()
-    folder_id: int = None
-    active: bool = True
+    path: Path | str
+    added_date: datetime | str = datetime.now()
+    folder_id: int | None = None
+    active: bool | int = True
 
     def __post_init__(self):
         if isinstance(self.path, str):
@@ -32,23 +32,23 @@ class Folder:
 @dataclass(kw_only=True)
 class Book:
     title: str
-    authors: list[str]
+    authors: list[str] | str
     year: int
     lang: str
-    filename:str
-    ext:str
-    storage_path: Path
-    folder: Folder
+    filename: str
+    ext: str
+    storage_path: Path | str
+    folder: Folder | dict
     size: float
-    tags: list[str]
+    tags: list[str] | str
     publisher: str
-    added_date: datetime = datetime.now()
-    book_id: int = None
-    active: bool = True
-    confirmed: bool = False
-    isbn13: str = None
-    parsed_isbn: str = None
-    hash_id: str = None
+    added_date: datetime | str = datetime.now()
+    book_id: int | None = None
+    active: bool | int = True
+    confirmed: bool | int = False
+    isbn13: str | None = None
+    parsed_isbn: str | None = None
+    hash_id: str | None = None
 
     def __post_init__(self):
         if isinstance(self.authors, str):
@@ -76,7 +76,7 @@ class Book:
             self.hash_id = hashlib.md5(self.filename.encode()).hexdigest()
 
     def get_absolute_path(self) -> Path:
-        return self.folder.path / self.storage_path
+        return self.folder.path / self.storage_path  # type: ignore
 
     def get_parsed_dict(self) -> tuple[dict[str, Any], dict[str, Any]]:
         d = { **self.__dict__ }
