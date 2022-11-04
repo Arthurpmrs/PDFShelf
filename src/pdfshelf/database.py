@@ -1,4 +1,5 @@
 import json
+import time
 import sqlite3
 from .domain import Book, Folder
 from .config import default_document_folder
@@ -60,22 +61,44 @@ class BookDBHandler:
     def __init__(self, con: Connection) -> None:
         self.con = con
     
-    def insert_book(self, book: Book) -> None:
+    def insert_book(self, book: Book) -> tuple[int, int]:
         cur = self.con.cursor()
+        book_id, folder_id = self._insert_single_book(book, cur)
+        self.con.commit()
 
+        return book_id, folder_id
+
+    def insert_books(self, books: list[Book]) -> None:
+        if len(books) == 0:
+            return
+        
+        self.con.isolation_level = None
+        cur = self.con.cursor()
+        
+        cur.execute("BEGIN")
+        for book in books:
+            self._insert_single_book(book, cur)
+        self.con.commit()
+        
+
+    def _insert_single_book(self, book: Book, cur: sqlite3.Cursor) -> tuple[int, int]:
+        if book is None:
+            raise TypeError("Can not insert a None Book!")
+        
         parsed_book, parsed_folder = book.get_parsed_dict()
 
         cur.execute("""INSERT OR IGNORE INTO Folder VALUES(:folder_id, :name, :path, :added_date, :active)""", parsed_folder)
-
-        if parsed_book["folder_id"] is None:
-            parsed_book["folder_id"] = cur.lastrowid 
+        f_res = cur.execute("""SELECT folder_id FROM Folder WHERE name = ?;""", (book.folder.name, ))
+        folder_id = f_res.fetchone()[0]
+        parsed_book["folder_id"] = folder_id 
 
         cur.execute("""INSERT OR IGNORE INTO Book VALUES(:book_id, :title, :authors, :year, :lang, :filename, :ext, :storage_path, 
-                                               :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
-                                               :parsed_isbn, :active, :confirmed)""", parsed_book)
-        
-    def insert_books(self, books: list[Book]) -> None:
-        pass
+                                            :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
+                                            :parsed_isbn, :active, :confirmed)""", parsed_book)
+        b_res = cur.execute("""SELECT book_id FROM Book WHERE hash_id = ?""", (book.hash_id ,))
+        book_id = b_res.fetchone()[0]
+
+        return book_id, folder_id
 
     def load_books(self, sorting_key: str = "no_sorting", filter_key: str = "no_filter", filter_content: str = None) -> dict[int, Book]:
         cur = self.con.cursor()
@@ -97,7 +120,21 @@ class BookDBHandler:
         return books
 
     def load_book_by_id(self, book_id: int) -> Book:
-        pass
+        cur = self.con.cursor()
+
+        res = cur.execute("""SELECT * FROM Book
+                             LEFT JOIN Folder 
+                             ON Book.folder_id == Folder.folder_id
+                             WHERE book_id = ?""", (book_id, ))        
+        
+        row = res.fetchone()
+        book_dict = {k:v for k, v in zip(row.keys()[0:18], row[0:18])}
+        book_dict.pop("folder_id")
+
+        folder_dict = {k:v for k, v in zip(row.keys()[18:23], row[18:23])}
+        folder = Folder(**folder_dict)
+
+        return Book(**book_dict, folder=folder)
 
     def update_book(self, book_id: int, content: dict[str, str]) -> None:
         pass
