@@ -154,23 +154,23 @@ class BookDBHandler:
             self.logger.warning(f"    [DUPLICATE] \"{book.get_short_filename()}\" equal to Book {book_id}")
         return book_id, folder_id
 
-    def load_books(self, sorting_key: str = "no_sorting", filter_key: str = "no_filter", filter_content: str = None) -> dict[int, Book]:
+    def load_books(self, sorting_key: str = "no_sorting", filter_key: str = "no_filter", filter_content: str = None) -> list[Book]:
         cur = self.con.cursor()
-
+        sorting = {
+            "no_sorting": "",
+            "title": "WHERE title IS NOT NULL\nORDER BY title",
+            "added_date": "ORDER BY added_date"
+        }
         res = cur.execute("""SELECT * FROM Book
                              LEFT JOIN Folder 
-                             ON Book.folder_id == Folder.folder_id""")        
-        books = {}
+                             ON Book.folder_id == Folder.folder_id
+                             """ + sorting[sorting_key])        
+        books = []
         for row in res.fetchall():
-            book_dict = {k:v for k, v in zip(row.keys()[0:18], row[0:18])}
-            book_dict.pop("folder_id")
+            book = self._get_book_from_row(row)
+            books.append(book)
 
-            folder_dict = {k:v for k, v in zip(row.keys()[18:23], row[18:23])}
-            folder = Folder(**folder_dict)
-
-            books.update(
-                {row["book_id"]: Book(**book_dict, folder=folder)}
-            )
+        self.logger.debug("[SELECTED] All Books")
         return books
 
     def load_book_by_id(self, book_id: int) -> Book:
@@ -182,6 +182,15 @@ class BookDBHandler:
                              WHERE book_id = ?""", (book_id, ))        
         
         row = res.fetchone()
+        if row is None:
+            raise ValueError("Book ID does not exist!")
+        
+        book = self._get_book_from_row(row)
+        self.logger.debug(f"[SELECTED] Book \"{book.get_short_filename()}\"")
+
+        return book
+
+    def _get_book_from_row(self, row: sqlite3.Row) -> Book:
         book_dict = {k:v for k, v in zip(row.keys()[0:18], row[0:18])}
         book_dict.pop("folder_id")
 

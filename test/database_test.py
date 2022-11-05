@@ -41,7 +41,7 @@ def setup_db(db_con, rootdir):
         cur.execute("""INSERT INTO Folder VALUES(NULL, :name, :path, :added_date, :active)""", folder)
         db_con.commit()
 
-class TestBookDBHandler:
+class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_new_book_existing_folder(self, db_con) -> None:
@@ -159,13 +159,6 @@ class TestBookDBHandler:
         book = None
         with pytest.raises(TypeError):
             handler.insert_book(book) # type: ignore
-
-    @pytest.mark.usefixtures("setup_db")
-    def test_load_all_books(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books()
-        
-        assert len(books) == 13
 
     @pytest.mark.usefixtures("setup_db")
     def test_duplicate_book_different_filename(self, db_con) -> None:
@@ -313,8 +306,48 @@ class TestBookDBHandler:
         handler = BookDBHandler(db_con)
         result = handler.insert_books([])
         assert result == None
-   
 
+class TestBookDBHandlerLoad:
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_book_by_id(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        book = handler.load_book_by_id(4)
+        if book is not None:
+            assert book.filename == "Ramalho_2021_Fluent Python_2nd.pdf"
+            assert book.title == "Fluent Python"
+            assert book.isbn13 == "9781491946008"
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_book_by_id_id_not_found(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        with pytest.raises(ValueError):
+            book = handler.load_book_by_id(20)
+
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_all_books(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        books = handler.load_books()
+        
+        assert len(books) == 13
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_sorting_by_title(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        books = handler.load_books(sorting_key="title")
+        
+        assert books[0].book_id == 1
+        assert books[9].book_id == 8
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_sorting_by_added_date(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        books = handler.load_books(sorting_key="added_date")
+        for book in books:
+            print(book.book_id, book.title)
+
+        assert books[0].book_id == 1
+        assert books[12].book_id == 13
 
 # Test table creation
 
