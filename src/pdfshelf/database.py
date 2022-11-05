@@ -158,8 +158,10 @@ class BookDBHandler:
         cur = self.con.cursor()
         sorting = {
             "no_sorting": "",
-            "title": "WHERE title IS NOT NULL\nORDER BY title",
-            "added_date": "ORDER BY added_date"
+            "title": "ORDER BY title NULLS LAST",
+            "added_date": "ORDER BY added_date",
+            "year": "ORDER BY year NULLS LAST",
+            "size": "ORDER BY size"
         }
         res = cur.execute("""SELECT * FROM Book
                              LEFT JOIN Folder 
@@ -169,8 +171,11 @@ class BookDBHandler:
         for row in res.fetchall():
             book = self._get_book_from_row(row)
             books.append(book)
-
-        self.logger.debug("[SELECTED] All Books")
+        
+        if sorting_key == "no_sorting":
+            self.logger.debug("[SELECTED] All Books")
+        else:
+            self.logger.debug(f"[SELECTED] All Books ordered by {sorting_key}")
         return books
 
     def load_book_by_id(self, book_id: int) -> Book:

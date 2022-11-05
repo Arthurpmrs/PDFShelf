@@ -337,17 +337,44 @@ class TestBookDBHandlerLoad:
         books = handler.load_books(sorting_key="title")
         
         assert books[0].book_id == 1
+        assert books[0].title == "Artificial Intelligence With Python"
         assert books[9].book_id == 8
+        assert books[9].title == "Programming Rust - Fast, Safe Systems Development"
+        assert books[12].book_id == 12
+        assert books[12].title == None
 
     @pytest.mark.usefixtures("setup_db")
     def test_load_sorting_by_added_date(self, db_con) -> None:
         handler = BookDBHandler(db_con)
         books = handler.load_books(sorting_key="added_date")
-        for book in books:
-            print(book.book_id, book.title)
 
         assert books[0].book_id == 1
         assert books[12].book_id == 13
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_sorting_by_year(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        books = handler.load_books(sorting_key="year")
+
+        assert books[0].book_id == 9
+        assert books[0].year  == 2009
+        assert books[9].book_id == 8
+        assert books[9].year == 2021
+        assert books[12].book_id == 12
+        assert books[12].year == None
+    
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_sorting_by_size(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        books = handler.load_books(sorting_key="size")
+
+        for book in books:
+            print(book.book_id, book.size, book.filename)
+        
+        assert books[0].book_id == 2
+        assert books[0].size == 1938322
+        assert books[12].book_id == 1
+        assert books[12].size == 51411688
 
 # Test table creation
 
