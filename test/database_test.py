@@ -105,11 +105,13 @@ class TestBookDBHandler:
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
         folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
         
         assert book_id == 1
         assert folder_id == 4
         assert book_count == 13
         assert folder_count == 4
+        assert duplicate_count == 1
 
     @pytest.mark.usefixtures("setup_db")
     def test_data_integrity_after_insert(self, db_con) -> None:
@@ -165,6 +167,58 @@ class TestBookDBHandler:
         
         assert len(books) == 13
 
+    @pytest.mark.usefixtures("setup_db")
+    def test_duplicate_book_different_filename(self, db_con) -> None:
+        handler = BookDBHandler(db_con)
+        book = Book(
+                title="Automate the boring stuff with Python",
+                authors=["Al Sweigart"],
+                year=2015,
+                publisher="No Starch Press",
+                lang="en",
+                isbn13="9781593275990",
+                parsed_isbn="9781593275990",
+                folder={
+                    "name": "folder-3",
+                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+                },
+                size=78000,
+                tags=[],
+                filename="automate-the-boring-stuff.pdf",
+                ext=".pdf",
+                storage_path="pythonbooks/automate-the-boring-stuff.pdf",
+        )
+        duplicate = Book(
+                title="Automate the boring stuff with Python",
+                authors=["Al Sweigart"],
+                year=2015,
+                publisher="No Starch Press",
+                lang="en",
+                isbn13="9781593275990",
+                parsed_isbn="9781593275990",
+                folder={
+                    "name": "folder-3",
+                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+                },
+                size=78000,
+                tags=[],
+                filename="automate-the-boring-stuff-libgen.pdf",
+                ext=".pdf",
+                storage_path="pythonbooks/automate-the-boring-stuff-libgen.pdf",
+        )
+        book_id, folder_id = handler.insert_book(book)
+        duplicate_book_id, duplicate_folder_id = handler.insert_book(duplicate)
+        
+        cur = db_con.cursor()
+        book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
+        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
+        
+        assert book_id == duplicate_book_id
+        assert folder_id == duplicate_folder_id
+        assert book_count == 14
+        assert folder_count == 4
+        assert duplicate_count == 1
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_books(self, db_con) -> None:
@@ -248,21 +302,18 @@ class TestBookDBHandler:
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
         folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
 
         assert book_count == 16
         assert folder_count == 5
+        assert duplicate_count == 1
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_books_empty_list(self, db_con) -> None:
         handler = BookDBHandler(db_con)
         result = handler.insert_books([])
         assert result == None
-        # with pytest.raises(ValueError):
-        #     handler.insert_books([])
-
-
-
-        
+   
 
 
 # Test table creation
