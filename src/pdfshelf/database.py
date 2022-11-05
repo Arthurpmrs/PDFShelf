@@ -30,7 +30,7 @@ class DatabaseConnector:
                         folder_id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL UNIQUE,
                         path TEXT NOT NULL UNIQUE,
-                        added_date TEXT,
+                        added_date DATE,
                         active INTEGER NOT NULL
                         )""")
         
@@ -46,7 +46,7 @@ class DatabaseConnector:
                         folder_id INTEGER NOT NULL,
                         size REAL NOT NULL,
                         tags TEXT,
-                        added_date TEXT NOT NULL,
+                        added_date DATE NOT NULL,
                         hash_id TEXT NOT NULL UNIQUE,
                         publisher TEXT,
                         isbn13 TEXT UNIQUE,
@@ -68,7 +68,7 @@ class DatabaseConnector:
                         folder_id INTEGER NOT NULL,
                         size REAL NOT NULL,
                         tags TEXT,
-                        added_date TEXT NOT NULL,
+                        added_date DATE NOT NULL,
                         hash_id TEXT NOT NULL,
                         publisher TEXT,
                         isbn13 TEXT,

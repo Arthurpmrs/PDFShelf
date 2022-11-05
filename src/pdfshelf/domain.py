@@ -25,7 +25,6 @@ class Folder:
     def get_parsed_dict(self) -> dict[str, Any]:
         d = { **self.__dict__ }
         d["path"] = str(d["path"])
-        d["added_date"] = str(d["added_date"])
         d["active"] = 1 if d["active"] else 0
         return d
 
@@ -83,7 +82,6 @@ class Book:
         d["authors"] = json.dumps(d["authors"])
         d["storage_path"] = str(d["storage_path"])
         d["tags"] = json.dumps(d["tags"])
-        d["added_date"] = str(d["added_date"])
         d["active"] = 1 if d["active"] else 0
         d["confirmed"] = 1 if d["confirmed"] else 0
         folder = d.pop("folder")
