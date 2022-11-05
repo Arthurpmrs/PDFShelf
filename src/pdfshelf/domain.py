@@ -89,3 +89,9 @@ class Book:
         folder = d.pop("folder")
         d["folder_id"] = folder.folder_id
         return d, folder.get_parsed_dict()
+    
+    def get_short_filename(self, size: int = 40) -> str:
+        if len(self.filename) > size:
+            return f"{self.filename[:size - 3]}..."
+        else:
+            return self.filename
