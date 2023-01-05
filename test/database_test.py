@@ -32,21 +32,26 @@ def setup_db(db_con, rootdir):
         folders = data["folders"]
 
     for book in books:
-        cur.execute("""INSERT INTO Book VALUES(NULL, :title, :authors, :year, :lang, :filename, :ext, :storage_path,
-                                               :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
-                                               :parsed_isbn, :active, :confirmed)""", book)
+        values = """NULL, :title, :authors, :year, :lang, :filename, :ext, 
+                    :storage_path, :folder_id, :size, :tags, :added_date, 
+                    :hash_id, :publisher, :isbn13, :parsed_isbn, :active, 
+                    :confirmed"""
+        cur.execute(f"INSERT INTO Book VALUES({values})", book)
         db_con.commit()
 
     for folder in folders:
-        cur.execute("""INSERT INTO Folder VALUES(NULL, :name, :path, :added_date, :active)""", folder)
+        values = "NULL, :name, :path, :added_date, :active"
+        cur.execute(f"INSERT INTO Folder VALUES({values})", folder)
         db_con.commit()
+
+@pytest.fixture
+def db_handler(db_con):
+    return BookDBHandler(db_con)
 
 class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
-    def test_insert_new_book_existing_folder(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-
+    def test_insert_new_book_existing_folder(self, db_con, db_handler) -> None:
         folder = {
             "name": "Default",
             "path": default_document_folder
@@ -66,7 +71,7 @@ class TestBookDBHandlerInsert:
             ext=".pdf",
             storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
-        book_id, folder_id = handler.insert_book(book)
+        book_id, folder_id = db_handler.insert_book(book)
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
@@ -78,9 +83,7 @@ class TestBookDBHandlerInsert:
         assert folder_count == 3
     
     @pytest.mark.usefixtures("setup_db")
-    def test_insert_existing_book_new_folder(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-
+    def test_insert_existing_book_new_folder(self, db_con, db_handler) -> None:
         folder = {
             "name": "folder-3",
             "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
@@ -96,11 +99,13 @@ class TestBookDBHandlerInsert:
             folder=folder,
             size=78000,
             tags=[],
-            filename="Prateek Joshi-Artificial Intelligence with Python-Packt Publishing - ebooks Account (2017).epub",
+            filename="Prateek Joshi-Artificial Intelligence with Python-Packt "
+                     "Publishing - ebooks Account (2017).epub",
             ext=".epub",
-            storage_path="pythonbooks/Prateek Joshi-Artificial Intelligence with Python-Packt Publishing - ebooks Account (2017).epub",
+            storage_path="pythonbooks/Prateek Joshi-Artificial Intelligence with"
+                         " Python-Packt Publishing - ebooks Account (2017).epub",
         )
-        book_id, folder_id = handler.insert_book(book)
+        book_id, folder_id = db_handler.insert_book(book)
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
@@ -114,9 +119,7 @@ class TestBookDBHandlerInsert:
         assert duplicate_count == 1
 
     @pytest.mark.usefixtures("setup_db")
-    def test_data_integrity_after_insert(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-
+    def test_data_integrity_after_insert(self, db_handler) -> None:
         folder = {
             "name": "folder-3",
             "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
@@ -138,8 +141,8 @@ class TestBookDBHandlerInsert:
             storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
 
-        book_id, _ = handler.insert_book(book)
-        loaded_book = handler.load_book_by_id(book_id)
+        book_id, _ = db_handler.insert_book(book)
+        loaded_book = db_handler.load_book_by_id(book_id)
 
         assert isinstance(loaded_book.authors, list) == True
         assert isinstance(loaded_book.tags, list) == True
@@ -154,15 +157,13 @@ class TestBookDBHandlerInsert:
         assert isinstance(loaded_book.folder.added_date, datetime) == True # type: ignore
 
     @pytest.mark.usefixtures("setup_db")
-    def test_insert_none(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
+    def test_insert_none(self, db_handler) -> None:
         book = None
         with pytest.raises(TypeError):
-            handler.insert_book(book) # type: ignore
+            db_handler.insert_book(book) # type: ignore
 
     @pytest.mark.usefixtures("setup_db")
-    def test_duplicate_book_different_filename(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
+    def test_duplicate_book_different_filename(self, db_con, db_handler) -> None:
         book = Book(
                 title="Automate the boring stuff with Python",
                 authors=["Al Sweigart"],
@@ -199,13 +200,16 @@ class TestBookDBHandlerInsert:
                 ext=".pdf",
                 storage_path="pythonbooks/automate-the-boring-stuff-libgen.pdf",
         )
-        book_id, folder_id = handler.insert_book(book)
-        duplicate_book_id, duplicate_folder_id = handler.insert_book(duplicate)
+        book_id, folder_id = db_handler.insert_book(book)
+        duplicate_book_id, duplicate_folder_id = db_handler.insert_book(duplicate)
         
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
         folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
-        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
+        duplicate_count = (
+            cur.execute("SELECT count(*) from Duplicate")
+            .fetchall()[0][0]
+        )
         
         assert book_id == duplicate_book_id
         assert folder_id == duplicate_folder_id
@@ -214,8 +218,7 @@ class TestBookDBHandlerInsert:
         assert duplicate_count == 1
 
     @pytest.mark.usefixtures("setup_db")
-    def test_insert_books(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
+    def test_insert_books(self, db_con, db_handler) -> None:
         books = [
             Book(
                 title="Automate the boring stuff with Python",
@@ -290,12 +293,15 @@ class TestBookDBHandlerInsert:
                 storage_path="pythonbooks/fluent-python-2.epub",
             )
         ]
-        handler.insert_books(books)
+        db_handler.insert_books(books)
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
         folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
-        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
+        duplicate_count = (
+            cur.execute("SELECT count(*) from Duplicate")
+            .fetchall()[0][0]
+        )
 
         assert book_count == 16
         assert folder_count == 5

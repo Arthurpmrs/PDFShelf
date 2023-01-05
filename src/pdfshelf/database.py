@@ -85,19 +85,29 @@ class BookDBHandler:
         self.logger = logging.getLogger(__name__)
     
     def insert_book(self, book: Book) -> tuple[int, int]:
+        """Insert a list of Book objects into Book table."""
+
         try: 
             cur = self.con.cursor()
             self.logger.info(f"Transaction started")
+
             book_id, folder_id = self._insert_single_book(book, cur)
+
             self.con.commit() 
             self.logger.info(f"Transaction ended successfully!")
         except sqlite3.Error:
-            self.logger.error(f"Transaction failed, rolling back!\n{traceback.format_exc()}")
+            self.logger.error(
+                "Transaction failed, rolling back!\n"
+                f"{traceback.format_exc()}"
+            )
             self.con.rollback()
             return -1, -1
+        
         return book_id, folder_id
 
     def insert_books(self, books: list[Book]) -> None:
+        """Insert a single Book object into Book table."""
+
         if len(books) == 0:
             self.logger.warning("Empty Book list was passed!")
             return
@@ -107,52 +117,91 @@ class BookDBHandler:
             cur = self.con.cursor()
             cur.execute("BEGIN")
             self.logger.info(f"Transaction started")
+
             for book in books:
                 self._insert_single_book(book, cur)
+
             self.con.commit()
             self.logger.info(f"Transaction ended successfully!")
         except sqlite3.Error:
-            self.logger.error(f"Transaction failed, rolling back!\n{traceback.format_exc()}")
+            self.logger.error(
+                "Transaction failed, rolling back!\n"
+                f"{traceback.format_exc()}"
+            )
             self.con.rollback()
         
 
     def _insert_single_book(self, book: Book, cur: sqlite3.Cursor) -> tuple[int, int]:
+        """Inserts Book into Book table if not Duplicate."""
+
         if book is None:
             self.logger.error("None Book passed!")
             raise TypeError("Can not insert a None Book!")
         
         parsed_book, parsed_folder = book.get_parsed_dict()
 
-        folder_was = "ADDED"
+        folder_status = "ADDED"
         try:
-            cur.execute("""INSERT INTO Folder VALUES(:folder_id, :name, :path, :added_date, :active)""", parsed_folder)
-        except sqlite3.IntegrityError as error:
-            folder_was = "ALREADY EXISTS"
+            values = ":folder_id, :name, :path, :added_date, :active"
+            cur.execute(f"INSERT INTO Folder VALUES({values})", parsed_folder)
+        except sqlite3.IntegrityError:
+            folder_status = "ALREADY EXISTS"
         
-        folder_id = cur.execute("""SELECT folder_id FROM Folder WHERE name = ?;""", (book.folder.name,  )).fetchone()[0]
-        self.logger.debug(f"    [{folder_was}] Folder {book.folder.name} (ID = {folder_id})")
+        folder_id = cur.execute(
+            "SELECT folder_id FROM Folder WHERE name = ?;", 
+            (book.folder.name,  )
+        ).fetchone()[0]
         parsed_book["folder_id"] = folder_id
+        
+        self.logger.debug(f"    "
+                          f"[{folder_status}] Folder {book.folder.name} " 
+                          f"(ID = {folder_id})")
 
         is_duplicate = False
         try:
-            cur.execute("""INSERT INTO Book VALUES(:book_id, :title, :authors, :year, :lang, :filename, :ext, :storage_path, 
-                                                :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
-                                                :parsed_isbn, :active, :confirmed)""", parsed_book)
-            self.logger.info(f"    [ADDED] Book \"{book.get_short_filename()}\"")
-        except sqlite3.IntegrityError as error:
+            values = """:book_id, :title, :authors, :year, :lang, :filename, 
+                        :ext, :storage_path, :folder_id, :size, :tags, 
+                        :added_date, :hash_id, :publisher, :isbn13, :parsed_isbn, 
+                        :active, :confirmed"""
+            cur.execute(f"INSERT INTO Book VALUES({values})", parsed_book)
+            
+            self.logger.info(f"    "
+                             f"[ADDED] Book \"{book.get_short_filename()}\"")        
+        except sqlite3.IntegrityError:
             is_duplicate = True
         
-        res = cur.execute("""SELECT book_id FROM Book WHERE hash_id = ? OR (isbn13 = ? AND isbn13 IS NOT NULL)""", 
-                          (book.hash_id, book.isbn13, )).fetchone()
-        book_id = res[0]
+        book_id = cur.execute("""SELECT book_id 
+                                 FROM Book 
+                                 WHERE hash_id = ? OR 
+                                 (isbn13 = ? AND isbn13 IS NOT NULL)""", 
+                          (book.hash_id, book.isbn13, )
+        ).fetchone()[0]
+        
         if is_duplicate:
-            parsed_book.pop("book_id")
-            parsed_book.update({"original_book_id": book_id})
-            cur.execute("""INSERT INTO Duplicate VALUES(:original_book_id, :title, :authors, :year, :lang, :filename, :ext, :storage_path, 
-                                                :folder_id, :size, :tags, :added_date, :hash_id, :publisher, :isbn13,
-                                                :parsed_isbn)""", parsed_book)
-            self.logger.warning(f"    [DUPLICATE] \"{book.get_short_filename()}\" equal to Book {book_id}")
+            self._insert_duplicate_book(
+                cur, book_id, parsed_book, book.get_short_filename()
+            )
+        
         return book_id, folder_id
+
+    def _insert_duplicate_book(
+        self, cur: sqlite3.Cursor, book_id: int, parsed_book: dict, 
+        short_name: str
+    ) -> None:
+        """Inserts duplicate book on Duplicate table."""
+        
+        parsed_book.pop("book_id")
+        parsed_book.update({"original_book_id": book_id})
+
+        values = """:original_book_id, :title, :authors, :year, :lang, 
+                    :filename, :ext, :storage_path, :folder_id, :size, 
+                    :tags, :added_date, :hash_id, :publisher, :isbn13,
+                    :parsed_isbn"""
+        cur.execute(f"INSERT INTO Duplicate VALUES({values})", parsed_book)
+        
+        self.logger.warning(f"    "
+                            f"[DUPLICATE] "
+                            f"\"{short_name}\" equal to Book {book_id}")
 
     def load_books(self, sorting_key: str = "no_sorting", filter_key: str = "no_filter", filter_content: str = None) -> list[Book]:
         cur = self.con.cursor()
