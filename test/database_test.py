@@ -8,9 +8,11 @@ from pdfshelf.database import BookDBHandler, DatabaseConnector
 from pdfshelf.domain import Book, Folder
 from pdfshelf.config import default_document_folder
 
+
 @pytest.fixture
 def rootdir():
     return os.path.dirname(os.path.abspath(__file__))
+
 
 @pytest.fixture
 def db_con():
@@ -23,9 +25,9 @@ def db_con():
 @pytest.fixture
 def setup_db(db_con, rootdir):
     cur = db_con.cursor()
-    DatabaseConnector.create_tables(db_con)  
-    pkl_data = Path(rootdir) / "test_data" / "dummie_data.pkl"
-    
+    DatabaseConnector.create_tables(db_con)
+    pkl_data = Path(rootdir) / "test_data" / "dummy_data.pkl"
+
     with open(pkl_data, 'rb') as inp:
         data = pickle.load(inp)
         books = data["books"]
@@ -44,9 +46,11 @@ def setup_db(db_con, rootdir):
         cur.execute(f"INSERT INTO Folder VALUES({values})", folder)
         db_con.commit()
 
+
 @pytest.fixture
 def db_handler(db_con):
     return BookDBHandler(db_con)
+
 
 class TestBookDBHandlerInsert:
 
@@ -75,13 +79,14 @@ class TestBookDBHandlerInsert:
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
-        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        folder_count = cur.execute(
+            "SELECT count(*) from Folder").fetchall()[0][0]
 
         assert book_id == 14
         assert folder_id == 3
         assert book_count == 14
         assert folder_count == 3
-    
+
     @pytest.mark.usefixtures("setup_db")
     def test_insert_existing_book_new_folder(self, db_con, db_handler) -> None:
         folder = {
@@ -109,9 +114,11 @@ class TestBookDBHandlerInsert:
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
-        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
-        duplicate_count = cur.execute("SELECT count(*) from Duplicate").fetchall()[0][0]
-        
+        folder_count = cur.execute(
+            "SELECT count(*) from Folder").fetchall()[0][0]
+        duplicate_count = cur.execute(
+            "SELECT count(*) from Duplicate").fetchall()[0][0]
+
         assert book_id == 1
         assert folder_id == 4
         assert book_count == 13
@@ -152,65 +159,70 @@ class TestBookDBHandlerInsert:
         assert isinstance(loaded_book.size, float) == True
         assert isinstance(loaded_book.storage_path, Path) == True
         assert isinstance(loaded_book.folder, Folder) == True
-        assert isinstance(loaded_book.folder.path, Path) == True  # type: ignore
-        assert isinstance(loaded_book.folder.active, bool) == True # type: ignore
-        assert isinstance(loaded_book.folder.added_date, datetime) == True # type: ignore
+        assert isinstance(loaded_book.folder.path,
+                          Path) == True  # type: ignore
+        assert isinstance(loaded_book.folder.active,
+                          bool) == True  # type: ignore
+        assert isinstance(loaded_book.folder.added_date,
+                          datetime) == True  # type: ignore
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_none(self, db_handler) -> None:
         book = None
         with pytest.raises(TypeError):
-            db_handler.insert_book(book) # type: ignore
+            db_handler.insert_book(book)  # type: ignore
 
     @pytest.mark.usefixtures("setup_db")
     def test_duplicate_book_different_filename(self, db_con, db_handler) -> None:
         book = Book(
-                title="Automate the boring stuff with Python",
-                authors=["Al Sweigart"],
-                year=2015,
-                publisher="No Starch Press",
-                lang="en",
-                isbn13="9781593275990",
-                parsed_isbn="9781593275990",
-                folder={
-                    "name": "folder-3",
-                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-                },
-                size=78000,
-                tags=[],
-                filename="automate-the-boring-stuff.pdf",
-                ext=".pdf",
-                storage_path="pythonbooks/automate-the-boring-stuff.pdf",
+            title="Automate the boring stuff with Python",
+            authors=["Al Sweigart"],
+            year=2015,
+            publisher="No Starch Press",
+            lang="en",
+            isbn13="9781593275990",
+            parsed_isbn="9781593275990",
+            folder={
+                "name": "folder-3",
+                "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            },
+            size=78000,
+            tags=[],
+            filename="automate-the-boring-stuff.pdf",
+            ext=".pdf",
+            storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
         duplicate = Book(
-                title="Automate the boring stuff with Python",
-                authors=["Al Sweigart"],
-                year=2015,
-                publisher="No Starch Press",
-                lang="en",
-                isbn13="9781593275990",
-                parsed_isbn="9781593275990",
-                folder={
-                    "name": "folder-3",
-                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-                },
-                size=78000,
-                tags=[],
-                filename="automate-the-boring-stuff-libgen.pdf",
-                ext=".pdf",
-                storage_path="pythonbooks/automate-the-boring-stuff-libgen.pdf",
+            title="Automate the boring stuff with Python",
+            authors=["Al Sweigart"],
+            year=2015,
+            publisher="No Starch Press",
+            lang="en",
+            isbn13="9781593275990",
+            parsed_isbn="9781593275990",
+            folder={
+                "name": "folder-3",
+                "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            },
+            size=78000,
+            tags=[],
+            filename="automate-the-boring-stuff-libgen.pdf",
+            ext=".pdf",
+            storage_path="pythonbooks/automate-the-boring-stuff-libgen.pdf",
         )
         book_id, folder_id = db_handler.insert_book(book)
-        duplicate_book_id, duplicate_folder_id = db_handler.insert_book(duplicate)
-        
+        duplicate_book_id, duplicate_folder_id = db_handler.insert_book(
+            duplicate)
+
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
-        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        folder_count = cur.execute(
+            "SELECT count(*) from Folder").fetchall()[0][0]
         duplicate_count = (
             cur.execute("SELECT count(*) from Duplicate")
             .fetchall()[0][0]
         )
-        
+
         assert book_id == duplicate_book_id
         assert folder_id == duplicate_folder_id
         assert book_count == 14
@@ -237,7 +249,7 @@ class TestBookDBHandlerInsert:
                 filename="automate-the-boring-stuff.pdf",
                 ext=".pdf",
                 storage_path="pythonbooks/automate-the-boring-stuff.pdf",
-        ),
+            ),
             Book(
                 title="Python Crash Course",
                 authors=["Eric Matthes"],
@@ -255,7 +267,7 @@ class TestBookDBHandlerInsert:
                 filename="python-crash-course.pdf",
                 ext=".pdf",
                 storage_path="pythonbooks/python-crash-course.pdf",
-        ),
+            ),
             Book(
                 title="Artificial Intelligence With Python",
                 authors=["Prateek Joshi"],
@@ -297,7 +309,8 @@ class TestBookDBHandlerInsert:
 
         cur = db_con.cursor()
         book_count = cur.execute("SELECT count(*) from Book").fetchall()[0][0]
-        folder_count = cur.execute("SELECT count(*) from Folder").fetchall()[0][0]
+        folder_count = cur.execute(
+            "SELECT count(*) from Folder").fetchall()[0][0]
         duplicate_count = (
             cur.execute("SELECT count(*) from Duplicate")
             .fetchall()[0][0]
@@ -313,35 +326,31 @@ class TestBookDBHandlerInsert:
         result = handler.insert_books([])
         assert result == None
 
+
 class TestBookDBHandlerLoad:
     @pytest.mark.usefixtures("setup_db")
-    def test_load_book_by_id(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        book = handler.load_book_by_id(4)
+    def test_load_book_by_id(self, db_con, db_handler) -> None:
+        book = db_handler.load_book_by_id(4)
         if book is not None:
             assert book.filename == "Ramalho_2021_Fluent Python_2nd.pdf"
             assert book.title == "Fluent Python"
             assert book.isbn13 == "9781491946008"
 
     @pytest.mark.usefixtures("setup_db")
-    def test_load_book_by_id_id_not_found(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
+    def test_load_book_by_id_id_not_found(self, db_handler) -> None:
         with pytest.raises(ValueError):
-            book = handler.load_book_by_id(20)
-
+            db_handler.load_book_by_id(20)
 
     @pytest.mark.usefixtures("setup_db")
-    def test_load_all_books(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books()
-        
+    def test_load_all_books(self, db_handler) -> None:
+        books = db_handler.load_books()
+
         assert len(books) == 13
 
     @pytest.mark.usefixtures("setup_db")
-    def test_load_sorting_by_title(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books(sorting_key="title")
-        
+    def test_load_sorting_by_title(self, db_handler) -> None:
+        books = db_handler.load_books(sorting_key="title")
+
         assert books[0].book_id == 1
         assert books[0].title == "Artificial Intelligence With Python"
         assert books[9].book_id == 8
@@ -350,58 +359,131 @@ class TestBookDBHandlerLoad:
         assert books[12].title == None
 
     @pytest.mark.usefixtures("setup_db")
-    def test_load_sorting_by_added_date(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books(sorting_key="added_date")
+    def test_load_sorting_by_added_date(self, db_handler) -> None:
+        books = db_handler.load_books(sorting_key="added_date")
 
         assert books[0].book_id == 1
         assert books[12].book_id == 13
 
     @pytest.mark.usefixtures("setup_db")
-    def test_load_sorting_by_year(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books(sorting_key="year")
+    def test_load_sorting_by_year(self, db_handler) -> None:
+        books = db_handler.load_books(sorting_key="year")
 
         assert books[0].book_id == 9
-        assert books[0].year  == 2009
+        assert books[0].year == 2009
         assert books[9].book_id == 8
         assert books[9].year == 2021
         assert books[12].book_id == 12
         assert books[12].year == None
-    
-    @pytest.mark.usefixtures("setup_db")
-    def test_load_sorting_by_size(self, db_con) -> None:
-        handler = BookDBHandler(db_con)
-        books = handler.load_books(sorting_key="size")
 
-        for book in books:
-            print(book.book_id, book.size, book.filename)
-        
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_sorting_by_size(self, db_handler) -> None:
+        books = db_handler.load_books(sorting_key="size")
+
         assert books[0].book_id == 2
         assert books[0].size == 1938322
         assert books[12].book_id == 1
         assert books[12].size == 51411688
 
-# Test table creation
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_publisher(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="publisher",
+            filter_content="O'Reilly Media"
+        )
 
-# Test insert Book
+        assert len(books) == 3
+        assert books[0].hash_id == "1e6b5c65e04a42ab8cee0c9b17f1aa77"
+        assert books[1].hash_id == "666a2b474f223232c8ddc7cdde01678a"
+        assert books[2].hash_id == "f8b0da97fe22bc5f58e4a71a19b12096"
 
-# Test insert books from list of Books
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_ext(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="ext",
+            filter_content=".pdf"
+        )
 
-# Test retrieve books from database
+        assert len(books) == 8
+        assert books[0].hash_id == "1e6b5c65e04a42ab8cee0c9b17f1aa77"
+        assert books[1].hash_id == "666a2b474f223232c8ddc7cdde01678a"
+        assert books[-1].hash_id == "1ec74ef4f392fea4987aa57a168a351a"
 
-# Test retrieve a book from database
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_year(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="year",
+            filter_content=2020
+        )
 
-# Test update book
+        assert len(books) == 2
+        assert books[0].hash_id == "1e6b5c65e04a42ab8cee0c9b17f1aa77"
+        assert books[-1].hash_id == "1ec74ef4f392fea4987aa57a168a351a"
 
-# Test delete book
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_tag(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="tag",
+            filter_content="python"
+        )
 
-# Test create folder
+        assert len(books) == 7
+        assert books[0].hash_id == "48e296cc59417f8f9dcfe5676a544952"
+        assert books[3].hash_id == "666a2b474f223232c8ddc7cdde01678a"
+        assert books[-1].hash_id == "f81cb933ed6afa10c437bae3709c3194"
 
-# Test retrieve folder
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_active(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="active",
+            filter_content=1
+        )
 
-# Test retrieve folders
+        assert len(books) == 9
+        assert books[2].hash_id == "1e6b5c65e04a42ab8cee0c9b17f1aa77"
+        assert books[5].hash_id == "f8b0da97fe22bc5f58e4a71a19b12096"
+        assert books[-1].hash_id == "efe8e540e2e6175aad863264040c71a1"
 
-# Test update folder
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_confirmed(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="confirmed",
+            filter_content=1
+        )
 
-# Test delete folder
+        assert len(books) == 4
+        assert books[1].hash_id == "f8b0da97fe22bc5f58e4a71a19b12096"
+        assert books[-1].hash_id == "efe8e540e2e6175aad863264040c71a1"
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_by_author(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="author",
+            filter_content="Luciano"
+        )
+
+        assert len(books) == 1
+        assert books[0].hash_id == "666a2b474f223232c8ddc7cdde01678a"
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_no_filter_match(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="author",
+            filter_content="Rasputcha"
+        )
+
+        assert isinstance(books, list)
+        assert len(books) == 0
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filtering_and_sorting(self, db_handler) -> None:
+        books = db_handler.load_books(
+            filter_key="tag",
+            filter_content="python",
+            sorting_key="year"
+        )
+
+        assert len(books) == 7
+        assert books[0].hash_id == "666a2b474f223232c8ddc7cdde01678a"
+        assert books[4].hash_id == "f81cb933ed6afa10c437bae3709c3194"
+        assert books[-1].hash_id == "8fbfb690a5ceba47633bb7ab77000d5d"

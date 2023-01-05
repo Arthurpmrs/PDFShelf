@@ -1,10 +1,11 @@
 # My things
-dummie.db
+dummy.db
 .prototype
 test/assets
 test/report.html
 .trash
 .vscode
+scripts
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
