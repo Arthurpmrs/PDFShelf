@@ -5,15 +5,19 @@ from pathlib import Path
 from pdfshelf.domain import Book
 from pdfshelf.fetchmetadata import MetadataFetcher
 from pdfshelf.config import config_folder
+from pdfshelf.database import DatabaseConnector, BookDBHandler
 
-from pdfshelf.database import DatabaseConnector
+
 def setup_logging():
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    f_format = logging.Formatter('%(asctime)s %(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s', "%Y-%m-%d %H:%M")
-    s_format = logging.Formatter('%(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s')
+    f_format = logging.Formatter(
+        '%(asctime)s %(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s', "%Y-%m-%d %H:%M")
+    s_format = logging.Formatter(
+        '%(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s')
 
-    f_handler = RotatingFileHandler(config_folder / "pdfshelf_dependencies.log", maxBytes=2500000, backupCount=25)
+    f_handler = RotatingFileHandler(
+        config_folder / "pdfshelf_dependencies.log", maxBytes=2500000, backupCount=25)
     f_handler.setLevel(logging.DEBUG)
     f_handler.setFormatter(f_format)
 
@@ -26,99 +30,52 @@ def setup_logging():
 
     logging.getLogger("pdfshelf").propagate = False
 
-def main1():
-    folder = {
-        "name": "foldinha",
-        "path": "/home/Documents/Library/Livros"
-    }
 
-    book = Book(
-        title="Modeling and simulation in Python",
-        authors=["Jason M. Kinser"],
-        year=2022,
-        lang="en",
-        filename="Jason M. Kinser - Modeling and Simulation in Python-Chapman & Hall (2022).pdf",
-        ext="pdf",
-        storage_path="teste/Jason M. Kinser - Modeling and Simulation in Python-Chapman & Hall (2022).pdf",
-        folder=folder,
-        size=100000,
-        publisher="CRC Press",
-        isbn13="978-1-032-11648-8"
-    )
+def insert1():
+    path = Path("/home/arthurpmrs/Documents/new_books")
 
-    print(book)
-    print(book.folder)
-
-def main2():
-    path = Path("/home/arthurpmrs/Documents/Library/Nova pasta/William Shotts - The Linux Command Line_ A Complete Introduction-No Starch Press (2019).pdf")
     fetcher = MetadataFetcher()
-    book = fetcher.fetch_metadata_from_file(path)
-    print(book)
-    print(book.folder)
-
-def main3():
-    folderpath = Path("/home/arthurpmrs/Downloads/test_data/selected")
-    fetcher = MetadataFetcher()
-    books, success_count = fetcher.get_books_from_folder(folderpath)
-    print(f"Metadata successful fetching: {success_count}")
+    books, total_success_count = fetcher.get_books_from_folder(path)
+    cleaned_books = []
+    print(f"Successes: {total_success_count}")
     for book, success in books:
-        print(success)
-        print(book)
-        print(" ")
+        print(f"{success} | {book}")
+        cleaned_books.append(book)
 
-def get_epub():
-    folderpath = Path("/home/arthurpmrs/Downloads/epubs/selected")
-    fetcher = MetadataFetcher()
-    books, success_count  = fetcher.get_books_from_folder(folderpath)
-    print(f"Metadata successful fetching: {success_count}")
-    for book, success in books:
-        print(book)
-
-def prototype_db():
     with DatabaseConnector() as con:
-        print("foi")
+        handler = BookDBHandler(con)
+        handler.insert_books(cleaned_books)
 
-def create_dummie_csv_data():
-    folderpaths =[
-        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/folder-0"),
-        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/folder-1")
-    ]
-    individuals = [
-        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/individuals/Lehman_2017_Mathematics for Computer Science.pdf"),
-        Path("/home/arthurpmrs/Documents/Library/dummie-data-source/individuals/Vince_2020_Foundation mathematics for computer science_A visual approach.pdf")
-    ] 
 
-    fetcher = MetadataFetcher()
+def update1():
+    with DatabaseConnector() as con:
+        handler = BookDBHandler(con)
+        content = {
+            "title": "Matemática discreta e suas aplicações",
+            "lang": "ptbr",
+            "authors": '["Kenneth H. Rosen"]',
+            "year": 2009,
+            "publisher": "McGraw-Hill",
+        }
+        handler.update_book(book_id=3, content=content)
 
-    books = []
-    folders = []
 
-    for folderpath in folderpaths:
-        bks, success_count = fetcher.get_books_from_folder(folderpath)
-        for (book, success) in bks:
-            parsed_book, parsed_folder = book.get_parsed_dict()
-            if not parsed_folder in folders:
-                folders.append(parsed_folder)
+def delete1():
+    with DatabaseConnector() as con:
+        handler = BookDBHandler(con)
+        handler.delete_book(book_id=5)
 
-            parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
-            parsed_book.pop("book_id")
-            books.append(parsed_book)
-    
-    for ind in individuals:
-        book, success = fetcher.get_book_from_file(ind)
-        parsed_book, parsed_folder = book.get_parsed_dict()
-        if not parsed_folder in folders:
-            folders.append(parsed_folder)
 
-        parsed_book.update({"folder_id": 1 + folders.index(parsed_folder)}) 
-        parsed_book.pop("book_id")
-        books.append(parsed_book)
+def load1():
+    with DatabaseConnector() as con:
+        handler = BookDBHandler(con)
 
-    data = {"books": books, "folders": folders}
+        books = handler.load_books()
 
-    with open('dummie_data.pkl', 'wb') as outp:
-        pickle.dump(data, outp, pickle.HIGHEST_PROTOCOL)
+        for book in books:
+            print(book.book_id, book.title, book.authors)
 
 
 if __name__ == "__main__":
-    create_dummie_csv_data()
+    # delete1()
+    load1()

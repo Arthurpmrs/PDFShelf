@@ -324,7 +324,12 @@ class BookDBHandler:
                 f"{traceback.format_exc()}"
             )
             return False
-
+        except sqlite3.Error:
+            self.logger.error(
+                "Update failed!\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
         self.con.commit()
 
         content_msg = '\n'.join([f'{k} = {v}' for k, v in content.items()])
@@ -343,8 +348,22 @@ class BookDBHandler:
         ]
         return True if key in protected_fields else False
 
-    def delete_book(self, book_id: int) -> None:
-        pass
+    def delete_book(self, book_id: int) -> bool:
+        """Delete one Book from Book table."""
+
+        cur = self.con.cursor()
+        try:
+            cur.execute("DELETE from Book WHERE Book.book_id = ?", (book_id, ))
+            self.con.commit()
+        except sqlite3.Error:
+            self.logger.error(
+                "Deletion failed!\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
+
+        self.logger.debug(f"[DELETED] Book {book_id}.")
+        return True
 
 
 class FolderDBHandler:
@@ -365,4 +384,6 @@ class FolderDBHandler:
         pass
 
 
+class DuplicateDBHandler:
+    pass
 # https://docs.python.org/3/library/sqlite3.html#sqlite3-tutorial

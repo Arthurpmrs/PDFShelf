@@ -76,6 +76,7 @@ class TestBookDBHandlerInsert:
             ext=".pdf",
             storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
+        print(book)
         book_id, folder_id = db_handler.insert_book(book)
 
         cur = db_con.cursor()
@@ -630,3 +631,29 @@ class TestBookDBHandlerUpdate:
         assert book.year == content["year"]
         assert book.publisher == content["publisher"]
         assert res == True
+
+
+class TestBookDBHandlerDelete:
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_delete_single_row(self, db_con, db_handler) -> None:
+        cur = db_con.cursor()
+        db_handler.delete_book(book_id=13)
+        count = (
+            cur.execute("SELECT count(*) from Book")
+            .fetchall()[0][0]
+        )
+        assert count == 12
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_delete_two_row(self, db_con, db_handler) -> None:
+        cur = db_con.cursor()
+        db_handler.delete_book(book_id=1)
+        db_handler.delete_book(book_id=2)
+
+        count = (
+            cur.execute("SELECT count(*) from Book")
+            .fetchall()[0][0]
+        )
+
+        assert count == 11
