@@ -287,8 +287,61 @@ class BookDBHandler:
 
         return Book(**book_dict, folder=folder)
 
-    def update_book(self, book_id: int, content: dict[str, str]) -> None:
-        pass
+    def update_book(self, book_id: int, content: dict[str, str]) -> bool:
+        """Update a Book by passing the modified properties and their values."""
+
+        if len(content) == 0:
+            self.logger.warning("No value update value passed!")
+            return False
+
+        cur = self.con.cursor()
+        values = list(content.values())
+        set_statement = "SET "
+
+        for i, key in enumerate(content):
+            if BookDBHandler._is_protected(key):
+                self.logger.error(
+                    f"'{key}' cannot be changed! Operation canceled!"
+                )
+                raise ValueError(f"{key} cannot be changed by this method!")
+
+            if (i + 1) == len(content):
+                set_statement += f"{key} = ?"
+            else:
+                set_statement += f"{key} = ?, "
+
+        query = f"""
+                UPDATE Book
+                {set_statement}
+                WHERE Book.book_id = ?
+                """
+
+        try:
+            cur.execute(query, (*values, book_id, ))
+        except sqlite3.OperationalError:
+            self.logger.error(
+                f"Column does not exist ({', '.join(list(content.keys()))})\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
+
+        self.con.commit()
+
+        content_msg = '\n'.join([f'{k} = {v}' for k, v in content.items()])
+        self.logger.debug(
+            f"[UPDATED] Book {book_id} with following values:\n"
+            f"{content_msg}"
+        )
+        return True
+
+    @staticmethod
+    def _is_protected(key: str) -> bool:
+        protected_fields = [
+            "book_id", "filename", "ext", "storage_path", "folder_id", "size",
+            "added_date", "hash_id", "isbn13", "parsed_isbn", "active",
+            "confirmed"
+        ]
+        return True if key in protected_fields else False
 
     def delete_book(self, book_id: int) -> None:
         pass

@@ -5,12 +5,17 @@ from .config import config_folder
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 f_format = logging.Formatter(
-    '%(asctime)s %(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s', "%Y-%m-%d %H:%M")
+    '%(asctime)s %(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s',
+    "%Y-%m-%d %H:%M"
+)
 s_format = logging.Formatter(
-    '%(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s')
+    '%(name)-22s %(levelname)-8s [%(lineno)-3s] %(message)s'
+)
 
 f_handler = RotatingFileHandler(
-    config_folder / "pdfshelf.log", maxBytes=2500000, backupCount=25)
+    config_folder / "pdfshelf.log",
+    maxBytes=2500000, backupCount=25
+)
 f_handler.setLevel(logging.DEBUG)
 f_handler.setFormatter(f_format)
 

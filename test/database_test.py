@@ -1,4 +1,5 @@
 import os
+import json
 import pytest
 import sqlite3
 import pickle
@@ -329,7 +330,7 @@ class TestBookDBHandlerInsert:
 
 class TestBookDBHandlerLoad:
     @pytest.mark.usefixtures("setup_db")
-    def test_load_book_by_id(self, db_con, db_handler) -> None:
+    def test_load_book_by_id(self, db_handler) -> None:
         book = db_handler.load_book_by_id(4)
         if book is not None:
             assert book.filename == "Ramalho_2021_Fluent Python_2nd.pdf"
@@ -487,3 +488,145 @@ class TestBookDBHandlerLoad:
         assert books[0].hash_id == "666a2b474f223232c8ddc7cdde01678a"
         assert books[4].hash_id == "f81cb933ed6afa10c437bae3709c3194"
         assert books[-1].hash_id == "8fbfb690a5ceba47633bb7ab77000d5d"
+
+
+class TestBookDBHandlerUpdate:
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_single_property(self, db_handler) -> None:
+        content_1 = {"authors": '["Prateek Joshi", "John Cena"]'}
+        db_handler.update_book(book_id=1, content=content_1)
+        book_1 = db_handler.load_book_by_id(book_id=1)
+
+        assert len(book_1.authors) == 2
+
+        content_2 = {"title": "Fluent Python 2nd"}
+        db_handler.update_book(book_id=4, content=content_2)
+        book_2 = db_handler.load_book_by_id(book_id=4)
+
+        assert book_2.title == "Fluent Python 2nd"
+
+        content_3 = {"tags": '["Python"]'}
+        db_handler.update_book(book_id=7, content=content_3)
+        book_3 = db_handler.load_book_by_id(book_id=7)
+
+        assert len(book_3.tags) == 1
+
+        content_4 = {"publisher": "Packt"}
+        db_handler.update_book(book_id=5, content=content_4)
+        book_4 = db_handler.load_book_by_id(book_id=5)
+
+        assert book_4.publisher == "Packt"
+
+        content_5 = {"year": 2021}
+        db_handler.update_book(book_id=13, content=content_5)
+        book_5 = db_handler.load_book_by_id(book_id=13)
+
+        assert book_5.year == 2021
+
+        content_6 = {"lang": "ptBR"}
+        db_handler.update_book(book_id=4, content=content_6)
+        book_6 = db_handler.load_book_by_id(book_id=4)
+        assert book_6.lang == "ptBR"
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_multiple_properties(self, db_handler) -> None:
+        book_1 = db_handler.load_book_by_id(book_id=1)
+        content_1 = {
+            "authors": '["Prateek Joshi", "John Cena"]',
+            "title": "AI with Python",
+            "year": 2021,
+        }
+        db_handler.update_book(book_id=1, content=content_1)
+        book_1.authors = json.loads(content_1["authors"])
+        book_1.title = content_1["title"]
+        book_1.year = content_1["year"]
+        book_1_after = db_handler.load_book_by_id(book_id=1)
+
+        assert book_1 == book_1_after
+
+        book_2 = db_handler.load_book_by_id(book_id=8)
+        content_2 = {
+            "tags": '["Rust"]',
+            "title": "Coding Rust blah",
+            "lang": "jp",
+            "authors": '["Jim", "Potter", "Nanakuza"]'
+        }
+        db_handler.update_book(book_id=8, content=content_2)
+        book_2.authors = json.loads(content_2["authors"])
+        book_2.tags = json.loads(content_2["tags"])
+        book_2.lang = content_2["lang"]
+        book_2.title = content_2["title"]
+        book_2_after = db_handler.load_book_by_id(book_id=8)
+
+        assert book_2 == book_2_after
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_empty_dict(self, db_handler) -> None:
+        assert db_handler.update_book(book_id=1, content={}) == False
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_invalid_key(self, db_handler) -> None:
+        content = {
+            "geezers": 52
+        }
+        assert db_handler.update_book(book_id=1, content=content) == False
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_only_protected_fields(self, db_handler) -> None:
+        content_1 = {
+            "size": 1500,
+            "added_date": "2020-12-30",
+            "hash_id": "bla"
+        }
+
+        content_2 = {
+            "isbn13": "bla",
+            "parsed_isbn": "bla",
+            "active": 0,
+            "confirmed": 1,
+        }
+
+        content_3 = {
+            "folder_id": 4,
+            "filename": "bla.mp3",
+            "storage_path": "bla/bla",
+            "ext": ".mp3"
+        }
+
+        with pytest.raises(ValueError):
+            db_handler.update_book(book_id=1, content=content_1)
+
+        with pytest.raises(ValueError):
+            db_handler.update_book(book_id=4, content=content_2)
+
+        with pytest.raises(ValueError):
+            db_handler.update_book(book_id=8, content=content_3)
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_protected_fields(self, db_handler) -> None:
+        content = {
+            "authors": '["Prateek Joshi", "John Cena"]',
+            "title": "AI with Python",
+            "year": 2021,
+            "filename": "AI_with_python.pdf"
+        }
+        with pytest.raises(ValueError):
+            db_handler.update_book(book_id=1, content=content)
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_null_field(self, db_handler) -> None:
+        content = {
+            "title": "NumPy Cookbook",
+            "authors": '["Ivan Idris"]',
+            "year": 2015,
+            "publisher": "Packt"
+        }
+        res = db_handler.update_book(book_id=6, content=content)
+        book = db_handler.load_book_by_id(book_id=6)
+
+        assert book.title == content["title"]
+        assert book.authors == json.loads(content["authors"])
+        assert book.year == content["year"]
+        assert book.publisher == content["publisher"]
+        assert res == True
