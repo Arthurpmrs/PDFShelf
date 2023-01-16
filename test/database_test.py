@@ -5,7 +5,7 @@ import sqlite3
 import pickle
 from datetime import datetime
 from pathlib import Path
-from pdfshelf.database import BookDBHandler, DatabaseConnector
+from pdfshelf.database import BookDBHandler, DatabaseConnector, FolderDBHandler
 from pdfshelf.domain import Book, Folder
 from pdfshelf.config import default_document_folder
 
@@ -51,6 +51,11 @@ def setup_db(db_con, rootdir):
 @pytest.fixture
 def db_handler(db_con):
     return BookDBHandler(db_con)
+
+
+@pytest.fixture
+def folder_db_handler(db_con):
+    return FolderDBHandler(db_con)
 
 
 class TestBookDBHandlerInsert:
@@ -657,3 +662,59 @@ class TestBookDBHandlerDelete:
         )
 
         assert count == 11
+
+
+class TestFolderDBHandlerInsert:
+    pass
+
+
+class TestFolderDBHandlerLoad:
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_folder_by_id(self, folder_db_handler) -> None:
+        folder = folder_db_handler.load_folder_by_id(folder_id=2)
+
+        assert folder.folder_id == 2
+        assert folder.name == "folder-1"
+        assert folder.path == Path(
+            "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-1"
+        )
+        assert folder.active == False
+        assert isinstance(folder.folder_id, int)
+        assert isinstance(folder.added_date, datetime)
+        assert isinstance(folder.active, bool)
+        assert isinstance(folder.name, str)
+        assert isinstance(folder.path, Path)
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_all_folders(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders()
+
+        assert len(folders) == 3
+        assert folders[0].path == Path(
+            "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-0"
+        )
+        assert folders[1].name == "folder-1"
+        assert folders[2].name == "Default"
+
+    # @pytest.mark.usefixtures("setup_db")
+    # def test_load_order_by_name(self, folder_db_handler) -> None:
+    #     pass
+
+    # @pytest.mark.usefixtures("setup_db")
+    # def test_load_order_by_date(self, folder_db_handler) -> None:
+    #     pass
+
+    # @pytest.mark.usefixtures("setup_db")
+    # def test_load_filter_by_active(self, folder_db_handler) -> None:
+    #     pass
+
+    # Ordernar por Path? para os paths do mesmo diretório ficarem juntos?
+
+
+class TestFolderDBHandlerUpdate:
+    pass
+
+
+class TestFolderDBHandlerDelete:
+    pass

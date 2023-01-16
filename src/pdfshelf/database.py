@@ -370,12 +370,45 @@ class FolderDBHandler:
 
     def __init__(self, con: Connection) -> None:
         self.con = con
+        self.logger = logging.getLogger(__name__)
 
-    def insert_folder(self, folder: Folder) -> None:
+    def insert_folder(self, folder: Folder) -> int:
         pass
 
-    def load_folders(self, sorting_key: str = "added_date", filter_key: str = "no_filter", filter_content: str = None) -> dict[int, Folder]:
-        pass
+    def load_folder_by_id(self, folder_id: int) -> Folder:
+        """Load one Folder given a ID."""
+
+        query = """
+                SELECT * FROM Folder    
+                WHERE Folder.folder_id = ?
+                """
+
+        res = self.con.execute(query, (folder_id, ))
+
+        row = res.fetchone()
+        if row is None:
+            self.logger.error(f"Folder ID {folder_id} doest not exist!")
+            raise ValueError(f"Folder ID {folder_id} doest not exist!")
+
+        folder = Folder(**{k: v for k, v in zip(row.keys(), row)})
+        self.logger.debug(f"[SELECTED] Folder \"{folder.name}\"")
+        return folder
+
+    def load_folders(
+        self, sorting_key: str = "no_sorting", filter_key: str = "no_filter",
+        filter_content: str = ""
+    ) -> list[Folder]:
+
+        query = """
+                SELECT * FROM Folder
+                """
+        res = self.con.execute(query)
+
+        folders = []
+        for row in res.fetchall():
+            folders.append(Folder(**{k: v for k, v in zip(row.keys(), row)}))
+
+        return folders
 
     def update_folder(self, folder_id: int) -> None:
         pass
