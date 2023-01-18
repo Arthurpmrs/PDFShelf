@@ -697,19 +697,44 @@ class TestFolderDBHandlerLoad:
         assert folders[1].name == "folder-1"
         assert folders[2].name == "Default"
 
-    # @pytest.mark.usefixtures("setup_db")
-    # def test_load_order_by_name(self, folder_db_handler) -> None:
-    #     pass
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_order_by_name(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders(sorting_key="name")
 
-    # @pytest.mark.usefixtures("setup_db")
-    # def test_load_order_by_date(self, folder_db_handler) -> None:
-    #     pass
+        assert folders[0].folder_id == 3
+        assert folders[1].folder_id == 1
+        assert folders[2].folder_id == 2
 
-    # @pytest.mark.usefixtures("setup_db")
-    # def test_load_filter_by_active(self, folder_db_handler) -> None:
-    #     pass
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_order_by_date(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders(sorting_key="date")
 
-    # Ordernar por Path? para os paths do mesmo diretório ficarem juntos?
+        assert folders[0].folder_id == 1
+        assert folders[1].folder_id == 2
+        assert folders[2].folder_id == 3
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_order_by_path(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders(sorting_key="path")
+
+        assert folders[0].folder_id == 1
+        assert folders[1].folder_id == 2
+        assert folders[2].folder_id == 3
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filter_by_active(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders(filter_key="active")
+
+        assert len(folders) == 2
+        assert folders[0].folder_id == 1
+        assert folders[1].folder_id == 3
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_load_filter_by_not_active(self, folder_db_handler) -> None:
+        folders = folder_db_handler.load_folders(filter_key="not_active")
+
+        assert len(folders) == 1
+        assert folders[0].folder_id == 2
 
 
 class TestFolderDBHandlerUpdate:

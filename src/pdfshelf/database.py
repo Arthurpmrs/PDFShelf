@@ -395,18 +395,39 @@ class FolderDBHandler:
         return folder
 
     def load_folders(
-        self, sorting_key: str = "no_sorting", filter_key: str = "no_filter",
-        filter_content: str = ""
+        self, sorting_key: str = "no_sorting", filter_key: str = "no_filter"
     ) -> list[Folder]:
+        """
+        Read Folders from Database.
 
-        query = """
+        Sorting by: name, added_date and path.
+        Filtering by: active and not_active.
+        """
+
+        sorting = {
+            "no_sorting": "",
+            "name": "ORDER BY Folder.name",
+            "date": "ORDER BY Folder.added_date",
+            "path": "ORDER BY Folder.path"
+        }
+        filtering = {
+            "no_filter": "",
+            "active": "WHERE Folder.active == 1",
+            "not_active": "WHERE Folder.active == 0"
+        }
+        query = f"""
                 SELECT * FROM Folder
+                {filtering[filter_key]}
+                {sorting[sorting_key]}
                 """
         res = self.con.execute(query)
 
         folders = []
+        print()
         for row in res.fetchall():
-            folders.append(Folder(**{k: v for k, v in zip(row.keys(), row)}))
+            folder = Folder(**{k: v for k, v in zip(row.keys(), row)})
+            print(folder)
+            folders.append(folder)
 
         return folders
 
