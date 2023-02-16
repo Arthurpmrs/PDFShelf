@@ -5,9 +5,36 @@ import sqlite3
 import pickle
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from pdfshelf.database import BookDBHandler, DatabaseConnector, FolderDBHandler
 from pdfshelf.domain import Book, Folder
 from pdfshelf.config import default_document_folder
+
+
+class _Auto:
+    """
+    Sentinel value indicating an automatic default will be used.
+    Ref: https://lukeplant.me.uk/blog/posts/test-factory-functions-in-django/
+    """
+
+    def __bool__(self):
+        return False
+
+
+Auto: Any = _Auto()
+
+
+def folder_factory(
+    *, name="folder-000", path="/home/username/Documents/Books",
+    added_date=Auto, folder_id=None, active=True
+) -> Folder:
+    return Folder(
+        name=name,
+        path=path,
+        added_date=datetime.now() if added_date is Auto else added_date,
+        folder_id=folder_id,
+        active=active
+    )
 
 
 @pytest.fixture
@@ -665,7 +692,32 @@ class TestBookDBHandlerDelete:
 
 
 class TestFolderDBHandlerInsert:
-    pass
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_insert_folder(self, folder_db_handler) -> None:
+        folder = folder_factory()
+        folder_id = folder_db_handler.insert_folder(folder)
+        folder.folder_id = folder_id
+
+        folders = folder_db_handler.load_folders()
+        folder_loaded = folder_db_handler.load_folder_by_id(folder_id)
+
+        assert len(folders) == 4
+        assert folder_loaded == folder
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_insert_existing_folder(self, folder_db_handler) -> None:
+        folder = folder_factory(
+            name="folder-0",
+            path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-0"
+        )
+        folder_id = folder_db_handler.insert_folder(folder)
+        assert folder_id == 1
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_insert_none_folder(self, folder_db_handler) -> None:
+        with pytest.raises(TypeError):
+            folder_id = folder_db_handler.insert_folder(None)
 
 
 class TestFolderDBHandlerLoad:

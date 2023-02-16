@@ -373,7 +373,32 @@ class FolderDBHandler:
         self.logger = logging.getLogger(__name__)
 
     def insert_folder(self, folder: Folder) -> int:
-        pass
+        """Insert new Folder to the Database. Returns folder_id."""
+        if folder is None:
+            self.logger.error("None Folder passed!")
+            raise TypeError("Can not insert a None Folder!")
+
+        parsed_folder = folder.get_parsed_dict()
+        folder_status = "ADDED"
+        try:
+            values = ":folder_id, :name, :path, :added_date, :active"
+            query = f"INSERT INTO Folder VALUES({values})"
+            self.con.execute(query, parsed_folder)
+        except sqlite3.IntegrityError:
+            folder_status = "ALREADY EXISTS"
+
+        select_query = """
+                       SELECT folder_id
+                       FROM Folder
+                       WHERE Folder.name = ?
+                       """
+        folder_id = (self.con.execute(select_query, (folder.name, ))
+                     .fetchone()[0])
+
+        self.logger.debug(f"[{folder_status}] Folder \"{folder.name}\" "
+                          f"(ID = {folder_id})")
+
+        return folder_id
 
     def load_folder_by_id(self, folder_id: int) -> Folder:
         """Load one Folder given a ID."""
@@ -423,10 +448,8 @@ class FolderDBHandler:
         res = self.con.execute(query)
 
         folders = []
-        print()
         for row in res.fetchall():
             folder = Folder(**{k: v for k, v in zip(row.keys(), row)})
-            print(folder)
             folders.append(folder)
 
         return folders
