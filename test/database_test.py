@@ -790,7 +790,56 @@ class TestFolderDBHandlerLoad:
 
 
 class TestFolderDBHandlerUpdate:
-    pass
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_one_field(self, folder_db_handler) -> None:
+        folder_id = 2
+        content = {
+            "name": "folder-0X"
+        }
+        success = folder_db_handler.update_folder(folder_id, content)
+        folder = folder_db_handler.load_folder_by_id(folder_id)
+
+        assert success == True
+        assert folder.name == content["name"]
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_many_field(self, folder_db_handler) -> None:
+        folder_id = 1
+        content = {
+            "name": "folder-0X",
+            "path": "/home/arthurpmrs/books/dummie-data-source/folder-1"
+        }
+        success = folder_db_handler.update_folder(folder_id, content)
+        folder = folder_db_handler.load_folder_by_id(folder_id)
+
+        assert success == True
+        assert folder.name == content["name"]
+        assert folder.path == Path(content["path"])
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_empty_dict(self, folder_db_handler) -> None:
+        assert folder_db_handler.update_folder(folder_id=2,
+                                               content={}) == False
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_invalid_field(self, folder_db_handler) -> None:
+        content = {
+            "geezers": 52
+        }
+        assert folder_db_handler.update_folder(folder_id=2,
+                                               content=content) == False
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_update_protected_field(self, folder_db_handler) -> None:
+        with pytest.raises(ValueError):
+            folder_db_handler.update_folder(folder_id=1,
+                                            content={"active": 0})
+        with pytest.raises(ValueError):
+            folder_db_handler.update_folder(folder_id=2,
+                                            content={"added_date": "2020-08-01"})
+        with pytest.raises(ValueError):
+            folder_db_handler.update_folder(folder_id=3,
+                                            content={"folder_id": 5})
 
 
 class TestFolderDBHandlerDelete:

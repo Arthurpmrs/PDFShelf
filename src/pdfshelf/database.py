@@ -454,8 +454,61 @@ class FolderDBHandler:
 
         return folders
 
-    def update_folder(self, folder_id: int) -> None:
-        pass
+    def update_folder(self, folder_id: int, content: dict[str, str]) -> bool:
+        """Update a Folder by passing the modified properties and their values."""
+
+        if len(content) == 0:
+            self.logger.warning("No update value was passed!")
+            return False
+
+        set_statement = "SET "
+        for i, key in enumerate(content):
+            if FolderDBHandler._is_protected(key):
+                self.logger.error(
+                    f"'{key}' cannot be changed! Operation canceled!"
+                )
+                raise ValueError(f"{key} cannot be changed by this method!")
+
+            if (i + 1) == len(content):
+                set_statement += f"{key} = ?"
+            else:
+                set_statement += f"{key} = ?, "
+
+        query = f"""
+                UPDATE Folder
+                {set_statement}
+                WHERE Folder.folder_id = ?
+                """
+
+        values = list(content.values())
+
+        try:
+            self.con.execute(query, (*values, folder_id, ))
+        except sqlite3.OperationalError:
+            self.logger.error(
+                f"Column does not exist ({', '.join(list(content.keys()))})\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
+        except sqlite3.Error:
+            self.logger.error(
+                "Update failed!\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
+        self.con.commit()
+
+        content_msg = '\n'.join([f'{k} = {v}' for k, v in content.items()])
+        self.logger.debug(
+            f"[UPDATED] Folder {folder_id} with following values:\n"
+            f"{content_msg}"
+        )
+        return True
+
+    @staticmethod
+    def _is_protected(key: str) -> bool:
+        protected_fields = ["folder_id", "active", "added_date"]
+        return True if key in protected_fields else False
 
     def delete_folder(self, folder_id: int) -> None:
         pass
