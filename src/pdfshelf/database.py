@@ -291,7 +291,7 @@ class BookDBHandler:
         """Update a Book by passing the modified properties and their values."""
 
         if len(content) == 0:
-            self.logger.warning("No value update value passed!")
+            self.logger.warning("No update value was passed!")
             return False
 
         cur = self.con.cursor()
