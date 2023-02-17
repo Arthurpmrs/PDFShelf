@@ -510,8 +510,40 @@ class FolderDBHandler:
         protected_fields = ["folder_id", "active", "added_date"]
         return True if key in protected_fields else False
 
-    def delete_folder(self, folder_id: int) -> None:
-        pass
+    def delete_folder(self, folder_id: int) -> bool:
+        """Delete one Folder from Folder table."""
+
+        success = True
+        try:
+            query = "DELETE from Book WHERE Book.folder_id = ?"
+            self.con.execute(query, (folder_id, ))
+        except sqlite3.Error:
+            success = False
+            self.logger.error(
+                "Deletion of related Books failed!\n"
+                f"{traceback.format_exc()}"
+            )
+
+        try:
+            query = "DELETE from Folder WHERE Folder.folder_id = ?"
+            self.con.execute(query, (folder_id, ))
+        except sqlite3.Error:
+            success = False
+            self.logger.error(
+                "Deletion of Folder failed!\n"
+                f"{traceback.format_exc()}"
+            )
+
+        if success:
+            self.logger.debug(
+                f"[DELETED] Folder {folder_id} and related Books."
+            )
+            self.con.commit()
+            return True
+        else:
+            self.logger.error(f"Deletion failed, rolling back!")
+            self.con.rollback()
+            return False
 
 
 class DuplicateDBHandler:

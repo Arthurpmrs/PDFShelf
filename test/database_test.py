@@ -843,4 +843,40 @@ class TestFolderDBHandlerUpdate:
 
 
 class TestFolderDBHandlerDelete:
-    pass
+    @pytest.mark.usefixtures("setup_db")
+    def test_delete_single_row(self, db_con, folder_db_handler) -> None:
+        success = folder_db_handler.delete_folder(folder_id=2)
+
+        cur = db_con.cursor()
+        folder_count = (
+            cur.execute("SELECT count(*) from Folder")
+            .fetchall()[0][0]
+        )
+        book_count = (
+            cur.execute("SELECT count(*) from Book")
+            .fetchall()[0][0]
+        )
+
+        assert success == True
+        assert folder_count == 2
+        assert book_count == 6
+
+    @pytest.mark.usefixtures("setup_db")
+    def test_delete_two_row(self, db_con, folder_db_handler) -> None:
+        success_1 = folder_db_handler.delete_folder(folder_id=1)
+        success_2 = folder_db_handler.delete_folder(folder_id=3)
+
+        cur = db_con.cursor()
+        folder_count = (
+            cur.execute("SELECT count(*) from Folder")
+            .fetchall()[0][0]
+        )
+        book_count = (
+            cur.execute("SELECT count(*) from Book")
+            .fetchall()[0][0]
+        )
+
+        assert success_1 == True
+        assert success_2 == True
+        assert book_count == 7
+        assert folder_count == 1
