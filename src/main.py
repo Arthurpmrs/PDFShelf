@@ -1,9 +1,7 @@
-import pickle
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from pdfshelf.domain import Book
-from pdfshelf.fetchmetadata import MetadataFetcher
+from pdfshelf.importer import books_from_folder
 from pdfshelf.config import config_folder
 from pdfshelf.database import DatabaseConnector, BookDBHandler
 
@@ -76,6 +74,12 @@ def load1():
             print(book.book_id, book.title, book.authors)
 
 
+def test_import():
+    path = Path(r"/home/arthurpmrs/Documents/new_books")
+    books = books_from_folder(path)
+    for book in books:
+        print(book)
+
+
 if __name__ == "__main__":
-    # delete1()
-    load1()
+    test_import()
