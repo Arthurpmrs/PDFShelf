@@ -4,8 +4,7 @@ import logging
 import isbnlib
 import ebooklib
 import traceback
-from enum import Enum
-from typing import Callable, Optional
+from typing import Callable
 from isbnlib import ISBNLibException
 from ebooklib import epub
 from ebooklib.epub import EpubException
@@ -13,7 +12,7 @@ from pathlib import Path
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 from .domain import Book
-from .config import config_folder, default_document_folder
+from .config import default_document_folder
 from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
 

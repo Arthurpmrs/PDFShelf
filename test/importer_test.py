@@ -3,7 +3,6 @@ import pytest
 from typing import Any
 from pathlib import Path
 from isbnlib import ISBNLibException
-from pdfshelf.domain import Book, Folder
 from pdfshelf.importer import BookImporter, MetadataFetcher, ISBNParser
 from pdfshelf.exceptions import FormatNotSupportedError
 
