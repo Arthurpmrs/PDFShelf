@@ -109,3 +109,6 @@ class Book:
 
     def get_full_path(self) -> Path:
         return self.folder.path / self.storage_path
+
+    def get_cover_filename(self) -> str | None:
+        return self.cover_path.name if self.cover_path else None
