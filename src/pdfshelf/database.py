@@ -55,6 +55,7 @@ class DatabaseConnector:
                         parsed_isbn TEXT,
                         active INTEGER NOT NULL,
                         confirmed INTEGER NOT NULL,
+                        cover_path TEXT,
                         FOREIGN KEY (folder_id) REFERENCES Folder (folder_id)
                         )""")
 
@@ -75,6 +76,7 @@ class DatabaseConnector:
                         publisher TEXT,
                         isbn13 TEXT,
                         parsed_isbn TEXT,
+                        cover_path TEXT,
                         FOREIGN KEY (original_book_id) REFERENCES Book (book_id),
                         FOREIGN KEY (folder_id) REFERENCES Folder (folder_id)
                         )""")
@@ -163,7 +165,7 @@ class BookDBHandler:
             values = """:book_id, :title, :authors, :year, :lang, :filename, 
                         :ext, :storage_path, :folder_id, :size, :tags, 
                         :added_date, :hash_id, :publisher, :isbn13, :parsed_isbn, 
-                        :active, :confirmed"""
+                        :active, :confirmed, :cover_path"""
             cur.execute(f"INSERT INTO Book VALUES({values})", parsed_book)
 
             self.logger.info(f"    "
@@ -197,7 +199,7 @@ class BookDBHandler:
         values = """:original_book_id, :title, :authors, :year, :lang, 
                     :filename, :ext, :storage_path, :folder_id, :size, 
                     :tags, :added_date, :hash_id, :publisher, :isbn13,
-                    :parsed_isbn"""
+                    :parsed_isbn, :cover_path"""
         cur.execute(f"INSERT INTO Duplicate VALUES({values})", parsed_book)
 
         self.logger.warning(f"    "
@@ -279,13 +281,17 @@ class BookDBHandler:
         return books
 
     def _get_book_from_row(self, row: sqlite3.Row) -> Book:
-        book_dict = {k: v for k, v in zip(row.keys()[0:18], row[0:18])}
+        keys = row.keys()
+        cut_idx = keys.index("name") - 1
+
+        book_dict = {k: v for k, v in zip(keys[0:cut_idx], row[0:cut_idx])}
+        folder_dict = {k: v for k, v in zip(keys[cut_idx:], row[cut_idx:])}
+
+        folder = Folder.from_raw_data(folder_dict)
         book_dict.pop("folder_id")
+        book_dict.update({"folder": folder})
 
-        folder_dict = {k: v for k, v in zip(row.keys()[18:23], row[18:23])}
-        folder = Folder(**folder_dict)
-
-        return Book(**book_dict, folder=folder)
+        return Book.from_raw_data(book_dict)
 
     def update_book(self, book_id: int, content: dict[str, str]) -> bool:
         """Update a Book by passing the modified properties and their values."""
@@ -415,7 +421,8 @@ class FolderDBHandler:
             self.logger.error(f"Folder ID {folder_id} doest not exist!")
             raise ValueError(f"Folder ID {folder_id} doest not exist!")
 
-        folder = Folder(**{k: v for k, v in zip(row.keys(), row)})
+        folder_dict = {k: v for k, v in zip(row.keys(), row)}
+        folder = Folder.from_raw_data(folder_dict)
         self.logger.debug(f"[SELECTED] Folder \"{folder.name}\"")
         return folder
 
@@ -449,7 +456,8 @@ class FolderDBHandler:
 
         folders = []
         for row in res.fetchall():
-            folder = Folder(**{k: v for k, v in zip(row.keys(), row)})
+            folder_dict = {k: v for k, v in zip(row.keys(), row)}
+            folder = Folder.from_raw_data(folder_dict)
             folders.append(folder)
 
         return folders

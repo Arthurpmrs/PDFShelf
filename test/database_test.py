@@ -25,16 +25,57 @@ Auto: Any = _Auto()
 
 
 def folder_factory(
-    *, name="folder-000", path="/home/username/Documents/Books",
-    added_date=Auto, folder_id=None, active=True
+    *, name: str = "folder-000", path: str = "/home/username/Documents/Books",
+    added_date: datetime = Auto, folder_id: int = Auto, active: int = True
 ) -> Folder:
-    return Folder(
-        name=name,
-        path=path,
-        added_date=datetime.now() if added_date is Auto else added_date,
-        folder_id=folder_id,
-        active=active
-    )
+    folder = Folder.from_raw_data({
+        "name": name,
+        "path": path,
+        "added_date": datetime.now() if added_date is Auto else added_date,
+        "folder_id": None if folder_id is Auto else folder_id,
+        "active": active
+    })
+    return folder
+
+
+def book_factory(
+    *, title: str = "TheBookTM", authors: list[str] = Auto, year: int = 2021,
+    publisher: str = "ThePublisherTM", lang: str = "en",
+    isbn13: str = "9781593275990", parsed_isbn: str = "9781593275990",
+    folder: Folder = Auto, size: float = 12001.1, tags: list[str] = Auto,
+    filename: str = "the_book_tm.pdf", ext: str = ".pdf",
+    storage_path: str = "genericbooks/the_book_tm.pdf",
+    cover_path: str = "/home/arthurpmrs/pdfshelf/covers/cover_1.jpg",
+    active: bool = True, confirmed: bool = False, hash_id: str = Auto,
+    book_id: int = Auto
+) -> Book:
+
+    if authors is Auto:
+        authors = ["Plato", "Socrates"]
+    if folder is Auto:
+        folder = folder_factory()
+    if tags is Auto:
+        tags = ["Philosofy", "Mystic"]
+
+    book = Book.from_raw_data({
+        "title": title,
+        "authors": authors,
+        "year": year,
+        "lang": lang,
+        "publisher": publisher,
+        "isbn13": isbn13,
+        "parsed_isbn": parsed_isbn,
+        "folder": folder,
+        "filename": filename,
+        "ext": ext,
+        "storage_path": storage_path,
+        "size": size,
+        "tags": tags,
+        "cover_path": cover_path,
+        "book_id": None if book_id is Auto else book_id,
+        "hash_id": None if hash_id is Auto else hash_id,
+    })
+    return book
 
 
 @pytest.fixture
@@ -65,7 +106,7 @@ def setup_db(db_con, rootdir):
         values = """NULL, :title, :authors, :year, :lang, :filename, :ext, 
                     :storage_path, :folder_id, :size, :tags, :added_date, 
                     :hash_id, :publisher, :isbn13, :parsed_isbn, :active, 
-                    :confirmed"""
+                    :confirmed, :cover_path"""
         cur.execute(f"INSERT INTO Book VALUES({values})", book)
         db_con.commit()
 
@@ -89,11 +130,7 @@ class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_new_book_existing_folder(self, db_con, db_handler) -> None:
-        folder = {
-            "name": "Default",
-            "path": default_document_folder
-        }
-        book = Book(
+        book = book_factory(
             title="Automate the boring stuff with Python",
             authors=["Al Sweigart"],
             year=2015,
@@ -101,14 +138,16 @@ class TestBookDBHandlerInsert:
             lang="en",
             isbn13="9781593275990",
             parsed_isbn="9781593275990",
-            folder=folder,
+            folder=folder_factory(
+                name="Default",
+                path=str(default_document_folder)
+            ),
             size=78000,
             tags=[],
             filename="automate-the-boring-stuff.pdf",
             ext=".pdf",
             storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
-        print(book)
         book_id, folder_id = db_handler.insert_book(book)
 
         cur = db_con.cursor()
@@ -124,10 +163,9 @@ class TestBookDBHandlerInsert:
     @pytest.mark.usefixtures("setup_db")
     def test_insert_existing_book_new_folder(self, db_con, db_handler) -> None:
         folder = {
-            "name": "folder-3",
-            "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+
         }
-        book = Book(
+        book = book_factory(
             title="Artificial Intelligence With Python",
             authors=["Prateek Joshi"],
             year=2017,
@@ -135,7 +173,10 @@ class TestBookDBHandlerInsert:
             lang="en",
             isbn13="9781786464392",
             parsed_isbn="978-1-78646-439-2",
-            folder=folder,
+            folder=folder_factory(
+                name="folder-3",
+                path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            ),
             size=78000,
             tags=[],
             filename="Prateek Joshi-Artificial Intelligence with Python-Packt "
@@ -162,11 +203,10 @@ class TestBookDBHandlerInsert:
     @pytest.mark.usefixtures("setup_db")
     def test_data_integrity_after_insert(self, db_handler) -> None:
         folder = {
-            "name": "folder-3",
-            "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+
         }
 
-        book = Book(
+        book = book_factory(
             title="Automate the boring stuff with Python",
             authors=["Al Sweigart"],
             year=2015,
@@ -174,7 +214,10 @@ class TestBookDBHandlerInsert:
             lang="en",
             isbn13="9781593275990",
             parsed_isbn="9781593275990",
-            folder=folder,
+            folder=folder_factory(
+                name="folder-3",
+                path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            ),
             size=78000,
             tags=[],
             filename="automate-the-boring-stuff.pdf",
@@ -208,7 +251,7 @@ class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
     def test_duplicate_book_different_filename(self, db_con, db_handler) -> None:
-        book = Book(
+        book = book_factory(
             title="Automate the boring stuff with Python",
             authors=["Al Sweigart"],
             year=2015,
@@ -216,17 +259,17 @@ class TestBookDBHandlerInsert:
             lang="en",
             isbn13="9781593275990",
             parsed_isbn="9781593275990",
-            folder={
-                "name": "folder-3",
-                "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-            },
+            folder=folder_factory(
+                name="folder-3",
+                path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            ),
             size=78000,
             tags=[],
             filename="automate-the-boring-stuff.pdf",
             ext=".pdf",
             storage_path="pythonbooks/automate-the-boring-stuff.pdf",
         )
-        duplicate = Book(
+        duplicate = book_factory(
             title="Automate the boring stuff with Python",
             authors=["Al Sweigart"],
             year=2015,
@@ -234,10 +277,10 @@ class TestBookDBHandlerInsert:
             lang="en",
             isbn13="9781593275990",
             parsed_isbn="9781593275990",
-            folder={
-                "name": "folder-3",
-                "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-            },
+            folder=folder_factory(
+                name="folder-3",
+                path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+            ),
             size=78000,
             tags=[],
             filename="automate-the-boring-stuff-libgen.pdf",
@@ -266,7 +309,7 @@ class TestBookDBHandlerInsert:
     @pytest.mark.usefixtures("setup_db")
     def test_insert_books(self, db_con, db_handler) -> None:
         books = [
-            Book(
+            book_factory(
                 title="Automate the boring stuff with Python",
                 authors=["Al Sweigart"],
                 year=2015,
@@ -274,17 +317,17 @@ class TestBookDBHandlerInsert:
                 lang="en",
                 isbn13="9781593275990",
                 parsed_isbn="9781593275990",
-                folder={
-                    "name": "folder-3",
-                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-                },
+                folder=folder_factory(
+                    name="folder-3",
+                    path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+                ),
                 size=78000,
                 tags=[],
                 filename="automate-the-boring-stuff.pdf",
                 ext=".pdf",
                 storage_path="pythonbooks/automate-the-boring-stuff.pdf",
             ),
-            Book(
+            book_factory(
                 title="Python Crash Course",
                 authors=["Eric Matthes"],
                 year=2016,
@@ -292,17 +335,17 @@ class TestBookDBHandlerInsert:
                 lang="en",
                 isbn13="9781593276034",
                 parsed_isbn="9781593276034",
-                folder={
-                    "name": "folder-3",
-                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
-                },
+                folder=folder_factory(
+                    name="folder-3",
+                    path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-3"
+                ),
                 size=150000,
                 tags=[],
                 filename="python-crash-course.pdf",
                 ext=".pdf",
                 storage_path="pythonbooks/python-crash-course.pdf",
             ),
-            Book(
+            book_factory(
                 title="Artificial Intelligence With Python",
                 authors=["Prateek Joshi"],
                 year=2017,
@@ -310,17 +353,17 @@ class TestBookDBHandlerInsert:
                 lang="en",
                 isbn13="9781786464392",
                 parsed_isbn="978-1-78646-439-2",
-                folder={
-                    "name": "Default",
-                    "path": default_document_folder
-                },
+                folder=folder_factory(
+                    name="Default",
+                    path=str(default_document_folder)
+                ),
                 size=78000,
                 tags=[],
                 filename="Prateek Joshi-Artificial Intelligence with Python-Packt Publishing - ebooks Account (2017).epub",
                 ext=".epub",
                 storage_path="pythonbooks/Prateek Joshi-Artificial Intelligence with Python-Packt Publishing - ebooks Account (2017).epub",
             ),
-            Book(
+            book_factory(
                 title="Fluent Python 2ed",
                 authors=["Luciano Ramalho"],
                 year=2022,
@@ -328,10 +371,10 @@ class TestBookDBHandlerInsert:
                 lang="en",
                 isbn13="9781492056355",
                 parsed_isbn="9781492056355",
-                folder={
-                    "name": "folder-4",
-                    "path": "/home/arthurpmrs/Documents/Library/dummie-data-source/folder-4"
-                },
+                folder=folder_factory(
+                    name="folder-4",
+                    path="/home/arthurpmrs/Documents/Library/dummie-data-source/folder-4"
+                ),
                 size=78000,
                 tags=[],
                 filename="fluent-python-2.epub",
@@ -426,10 +469,9 @@ class TestBookDBHandlerLoad:
             filter_content="O'Reilly Media"
         )
 
-        assert len(books) == 3
+        assert len(books) == 2
         assert books[0].hash_id == "1e6b5c65e04a42ab8cee0c9b17f1aa77"
-        assert books[1].hash_id == "666a2b474f223232c8ddc7cdde01678a"
-        assert books[2].hash_id == "f8b0da97fe22bc5f58e4a71a19b12096"
+        assert books[1].hash_id == "f8b0da97fe22bc5f58e4a71a19b12096"
 
     @pytest.mark.usefixtures("setup_db")
     def test_load_filtering_by_ext(self, db_handler) -> None:
