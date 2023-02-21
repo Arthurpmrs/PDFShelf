@@ -162,9 +162,6 @@ class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_existing_book_new_folder(self, db_con, db_handler) -> None:
-        folder = {
-
-        }
         book = book_factory(
             title="Artificial Intelligence With Python",
             authors=["Prateek Joshi"],
@@ -202,10 +199,6 @@ class TestBookDBHandlerInsert:
 
     @pytest.mark.usefixtures("setup_db")
     def test_data_integrity_after_insert(self, db_handler) -> None:
-        folder = {
-
-        }
-
         book = book_factory(
             title="Automate the boring stuff with Python",
             authors=["Al Sweigart"],
@@ -242,6 +235,7 @@ class TestBookDBHandlerInsert:
                           bool) == True  # type: ignore
         assert isinstance(loaded_book.folder.added_date,
                           datetime) == True  # type: ignore
+        assert isinstance(loaded_book.cover_path, Path) == True  # type: ignore
 
     @pytest.mark.usefixtures("setup_db")
     def test_insert_none(self, db_handler) -> None:
