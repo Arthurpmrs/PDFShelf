@@ -9,8 +9,8 @@ from isbnlib import ISBNLibException
 from ebooklib import epub
 from ebooklib.epub import EpubException
 from pathlib import Path
-from PyPDF2 import PdfReader
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from .domain import Book
 from .config import default_document_folder
 from .exceptions import FormatNotSupportedError
@@ -235,21 +235,22 @@ class BookImporter:
             }
 
         year = metadata.get("Year", "0")
-        book = Book(
-            title=metadata.get("Title", None),
-            authors=metadata.get("Authors", []),
-            year=None if year == "0" else int(year),
-            publisher=metadata.get("Publisher", None),
-            lang=metadata.get("Language", None),
-            isbn13=metadata.get("ISBN-13", None),
-            parsed_isbn=metadata.get("parsed_isbn", None),
-            folder=folder,
-            size=os.path.getsize(file),
-            tags=[],
-            filename=file.name,
-            ext=file.suffix,
-            storage_path=storage_path,
-        )
+        book = Book.from_raw_data({
+            "title": metadata.get("Title"),
+            "authors": metadata.get("Authors", []),
+            "year": None if year == "0" else int(year),
+            "lang": metadata.get("Language"),
+            "publisher": metadata.get("Publisher"),
+            "isbn13": metadata.get("ISBN-13"),
+            "parsed_isbn": metadata.get("parsed_isbn"),
+            "folder": folder,
+            "filename": file.name,
+            "ext": file.suffix,
+            "storage_path": storage_path,
+            "size": os.path.getsize(file),
+            "tags": [],
+            "cover_path": None
+        })
         return book
 
     def import_from_folder(self, folderpath: Path) -> list[Book]:
