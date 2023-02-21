@@ -1,7 +1,9 @@
 from pathlib import Path
-from pdfshelf.cover import FileCoverExtractor
-from pdfshelf.importer import book_from_file
+from pdfshelf.cover import FileCoverExtractor, OLCoverFetcher
+from pdfshelf.importer import book_from_file, books_from_folder
 from pdfshelf.config import COVER_FOLDER
+
+# TODO: Tests que não dependem de pdfshelf.importer
 
 
 class TestFileCoverExtractor:
@@ -21,3 +23,17 @@ class TestFileCoverExtractor:
         cover_path = extract_func(book.hash_id, book.get_full_path())
         expected_cover_path = COVER_FOLDER / f"cover_{book.hash_id}.jpg"
         assert expected_cover_path.exists() == True
+
+
+class TestCoverFetcher:
+    def test_fething(self):
+        folder_path = Path("/home/arthurpmrs/books")
+        books = books_from_folder(folder_path)
+
+        fetcher = OLCoverFetcher()
+        books = fetcher.fetch(books)
+        for book in books:
+            print(book.hash_id, book.cover_path)
+
+        for filename in folder_path.iterdir():
+            print("FS-> ", filename)
