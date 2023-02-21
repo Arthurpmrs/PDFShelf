@@ -83,7 +83,7 @@ class TestBookImporter:
         with pytest.raises(FileNotFoundError):
             importer.import_from_file(non_existing_epub)
 
-    def test_failed_fetching_metadata(self, rootdir, mocker) -> None:
+    def test_failed_fetching_metadata(self, rootdir) -> None:
         files = [
             os.path.join(rootdir,
                          'test_data/how_to_code_in_python_isbn13.pdf'),

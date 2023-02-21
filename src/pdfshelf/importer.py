@@ -12,7 +12,6 @@ from pathlib import Path
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from .domain import Book
-from .config import default_document_folder
 from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
 
@@ -32,7 +31,6 @@ def book_from_file(file: Path) -> Book:
     return:
         Book
     """
-
     parser = ISBNParser(pages_to_read=10)
     fetcher = MetadataFetcher()
     importer = BookImporter(fetcher, parser)
@@ -225,13 +223,10 @@ class BookImporter:
 
         metadata, success = self.fetcher.from_isbn(isbn10, isbn13)
 
-        if folder:
-            storage_path = file.relative_to(folder["path"])
-        else:
-            storage_path = file.name
+        if folder is None:
             folder = {
-                "name": "Default",
-                "path": default_document_folder
+                "name": file.parent.name,
+                "path": file.parent
             }
 
         year = metadata.get("Year", "0")
@@ -246,7 +241,7 @@ class BookImporter:
             "folder": folder,
             "filename": file.name,
             "ext": file.suffix,
-            "storage_path": storage_path,
+            "storage_path": file.relative_to(folder["path"]),
             "size": os.path.getsize(file),
             "tags": [],
             "cover_path": None
