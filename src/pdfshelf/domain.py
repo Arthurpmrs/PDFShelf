@@ -34,7 +34,7 @@ class Folder:
         return d
 
 
-@ dataclass(kw_only=True)
+@dataclass(kw_only=True)
 class Book:
     book_id: int | None = None
     hash_id: str | None = None
@@ -106,3 +106,6 @@ class Book:
             return f"{self.filename[:size - 3]}..."
         else:
             return self.filename
+
+    def get_full_path(self) -> Path:
+        return self.folder.path / self.storage_path
