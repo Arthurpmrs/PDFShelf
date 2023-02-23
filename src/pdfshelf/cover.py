@@ -154,5 +154,41 @@ class OLCoverFetcher:
 
 class BookCover:
 
-    def __init__(self, fetcher: OLCoverFetcher) -> None:
-        pass
+    def __init__(self, fetcher: OLCoverFetcher,
+                 extractor: FileCoverExtractor) -> None:
+        self.fetcher = fetcher
+        self.extractor = extractor
+
+    def get_cover_for_book(self, book: Book) -> Book:
+        """"""
+        if book.cover_path:
+            LOGGER.info("[COVER] Already exists for "
+                        f"{book.get_short_filename()}")
+            return book
+
+        book = self.fetcher.fetch([book])[0]
+
+        if book.cover_path:
+            return book
+
+        extract_func = self.extractor.get_format_parser(book.ext)
+        book = extract_func(book)
+
+        return book
+
+    def get_cover_for_books(self, books: list[Book]) -> list[Book]:
+        """"""
+        if len(books) == 0:
+            LOGGER.warning("Empty Book list was passed!")
+            return books
+
+        books = self.fetcher.fetch(books)
+
+        books_after_extraction = []
+        for book in books:
+            if book.cover_path is None:
+                extract_func = self.extractor.get_format_parser(book.ext)
+                book = extract_func(book)
+            books_after_extraction.append(book)
+
+        return books_after_extraction
