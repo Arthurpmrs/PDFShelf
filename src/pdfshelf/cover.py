@@ -8,17 +8,20 @@ import ebooklib
 from ebooklib import epub
 from pathlib import Path
 from typing import Callable
+from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
+from ebooklib.epub import EpubException
 from .exceptions import FormatNotSupportedError
 from .config import COVER_FOLDER
 from .domain import Book
 
-CoverExtractFunc = Callable[..., Path]
+
+# TODO: DOC-STRINGS
+
+CoverExtractFunc = Callable[[Book], Book]
 LOGGER = logging.getLogger(__name__)
 
 
 class FileCoverExtractor:
-    # TODO: Logging
-    # TODO: Exception handling
     def __init__(self, cover_folder: Path | None = None):
         if cover_folder is None:
             self.cover_folder = COVER_FOLDER
@@ -33,23 +36,42 @@ class FileCoverExtractor:
         else:
             raise FormatNotSupportedError("Format not supported.")
 
-    def _pdf_extractor(self, hash_id: str, file: Path) -> Path:
-        cover_path = self.cover_folder / f"cover_{hash_id}.jpg"
+    def _pdf_extractor(self, book: Book) -> Book:
+        cover_path = self.cover_folder / f"cover_fromPDF_{book.hash_id}.jpg"
+        file = book.get_full_path()
+        try:
+            pages = pdf2image.convert_from_path(
+                file, first_page=1, last_page=1)
+            pages[0].save(cover_path, 'JPEG')
+            book.cover_path = cover_path
+            LOGGER.info("[COVER] Extracted from PDF for "
+                        f"{book.get_short_filename()}")
+            LOGGER.info(f"        Saved as {cover_path.name}")
+        except (PDFSyntaxError, PDFPageCountError):
+            LOGGER.error("[COVER-FAILED] Extraction from PDF failed.")
+            LOGGER.error("               File must be corruped or not exist.\n"
+                         f"{traceback.format_exc()}")
+        return book
 
-        pages = pdf2image.convert_from_path(file, first_page=1, last_page=1)
-        pages[0].save(cover_path, 'JPEG')
-        return cover_path
+    def _epub_extractor(self, book: Book) -> Book:
+        cover_path = self.cover_folder / f"cover_fromEPUB_{book.hash_id}.jpg"
 
-    def _epub_extractor(self, hash_id: str, file: Path) -> Path:
-        cover_path = self.cover_folder / f"cover_{hash_id}.jpg"
-
-        book = epub.read_epub(file)
-        for item in book.get_items():
-            if item.get_type() == ebooklib.ITEM_COVER:
-                with open(cover_path, 'wb') as cover:
-                    cover.write(item.get_content())
-                break
-        return cover_path
+        try:
+            epubfile = epub.read_epub(book.get_full_path())
+            for item in epubfile.get_items():
+                if item.get_type() == ebooklib.ITEM_COVER:
+                    with open(cover_path, 'wb') as cover:
+                        cover.write(item.get_content())
+                    break
+            book.cover_path = cover_path
+            LOGGER.info("[COVER] Extracted from EPUB for "
+                        f"{book.get_short_filename()}")
+            LOGGER.info(f"        Saved as {cover_path.name}")
+        except EpubException:
+            LOGGER.error("[COVER-FAILED] Extraction from EPUB failed.")
+            LOGGER.error("               File must be corruped or not exist.\n"
+                         f"{traceback.format_exc()}")
+        return book
 
 
 class OLCoverFetcher:
@@ -108,9 +130,9 @@ class OLCoverFetcher:
         url = f"https://covers.openlibrary.org/b/isbn/{isbn}-{size}.jpg?default=false"
 
         try:
-            r = requests.get(url, timeout=60)
+            r = requests.get(url, timeout=40)
             if r.status_code == 200:
-                cover_path = self.cover_folder / f"cover_{book.hash_id}.jpg"
+                cover_path = self.cover_folder / f"cover_OL_{book.hash_id}.jpg"
 
                 with open(cover_path, 'wb') as file:
                     file.write(r.content)
@@ -123,7 +145,8 @@ class OLCoverFetcher:
                                f"{book.get_short_filename()}")
         except requests.exceptions.Timeout:
             LOGGER.error(
-                "[COVER-FAILED] OpenLibrary.com didn't responde.\n"
+                "[COVER-FAILED] OpenLibrary.com didn't respond for\n"
+                f"{book.get_short_filename()}"
                 f"{traceback.format_exc()}"
             )
         return book
