@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any
-from pdfshelf.domain import Book, Folder
+from .domain import Book, Folder
 
 
 def validade_isbn10(isbn: str) -> bool:
