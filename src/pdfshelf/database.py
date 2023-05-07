@@ -390,6 +390,7 @@ class FolderDBHandler:
             values = ":folder_id, :name, :path, :added_date, :active"
             query = f"INSERT INTO Folder VALUES({values})"
             self.con.execute(query, parsed_folder)
+            self.con.commit()
         except sqlite3.IntegrityError:
             folder_status = "ALREADY EXISTS"
 
