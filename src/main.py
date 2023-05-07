@@ -1,7 +1,7 @@
 from pathlib import Path
 from src.pdfshelf.importer import books_from_folder
 from src.pdfshelf.config import config_folder
-from src.pdfshelf.database import DatabaseConnector, BookDBHandler
+from src.pdfshelf.database import DatabaseConnector, BookDBHandler, FolderDBHandler
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +18,10 @@ def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
 
 
-@app.get("/importbooks", response_class=HTMLResponse)
-def import_books(request: Request):
-
-    return templates.TemplateResponse("import_books.html", {"request": request})
+@app.get("/folders", response_class=HTMLResponse)
+def folders(request: Request):
+    with DatabaseConnector() as con:
+        folder_handler = FolderDBHandler(con)
+        folders = folder_handler.load_folders()
+    return templates.TemplateResponse("folders.html",
+                                      {"request": request, "folders": folders})
