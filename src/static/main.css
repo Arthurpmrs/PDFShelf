@@ -2,6 +2,8 @@
     --text-color: #f5f5f5;
     --dimmed-text-color: #999;
     --accent-color: #7a5cf9;
+    --accent-color-bright: #9e89fc;
+    --error-color: #ff5695;
     /* --background-color-1: #424242; */
     /* --background-color-2: #494949; */
     /* --background-color-3: #535353; */
@@ -25,7 +27,10 @@ body {
 }
 
 button {
-    border: 1px solid var(--accent-color);
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    border: 2px solid var(--accent-color);
     border-radius: 6px;
     background-color: var(--accent-color);
     cursor: pointer;
@@ -45,6 +50,15 @@ button:active {
     /* border: 1px solid rgb(160, 160, 160) */
 }
 
+button:focus {
+    border: 2px solid var(--accent-color-bright);
+    /* padding: 6px 24px; */
+}
+
+button svg {
+    margin-right: 8px;
+}
+
 input {
     box-sizing: border-box;
     border: 1px solid var(--background-color-3);
@@ -61,6 +75,11 @@ input:focus {
 h1, h2, h3 {
     margin: 0;
     padding: 0;
+}
+
+button.error {
+    background-color: var(--error-color);
+    border-color: var(--error-color);
 }
 
 .button-secondary {
@@ -170,7 +189,6 @@ h1, h2, h3 {
 
 .folder-card {
     display: flex;
-    /* justify-content: space-between; */
     box-sizing: border-box;
     align-items: center;
     width: 100%;
@@ -181,8 +199,12 @@ h1, h2, h3 {
 }
 
 .folder-card .name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 20%;
     padding-left: 30px;
-    line-height: 0%;
+    /* text-overflow: ellipsis; */
 }
 
 .folder-card .path {
@@ -204,5 +226,62 @@ h1, h2, h3 {
     width: 24px;
     height: 24px;
     align-self: center;
+}
+
+/* Modals */
+dialog::backdrop {
+    background-color: rgb(0, 0, 0, 0.6);
+}
+
+dialog[open] {
+    opacity: 1;
+}
+
+.modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--background-color-2);
+    border-radius: 10px;
+    border: 0px;
+    min-width: 30%;
+    padding: 20px 26px;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.modal label {
+    font-size: 14px;
+    color: var(--dimmed-text-color);
+}
+
+.modal input {
+    margin-bottom: 12px;
+}
+
+.modal h2 {
+    align-self: flex-start;
+    margin: 20px 0px;
+    color: var(--text-color);
+}
+  
+.modal .form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.modal .controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 16px;
+    gap: 0px 10px;
+}
+
+.modal .controls .message {
+    margin-right: auto;
+    font-size: 10px;
+    color: var(--dimmed-text-color)
 }
 

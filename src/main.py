@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse
 
 @dataclass
 class FolderRequestBody:
+    name: str
     path: str
 
 
@@ -37,16 +38,20 @@ def folders(request: Request):
 
 @app.post("/folders/add")
 def add_folder(folderRB: FolderRequestBody):
-    if (folderRB.path == ""):
+    if folderRB.path == "":
         return {"success": False, "message": "No path provided."}
 
     folder_path = Path(folderRB.path)
-    if (folder_path.exists() == False):
+    if folder_path.exists() == False:
         return {"success": False, "message": "Folder does not exist."}
+
+    folder_name = folderRB.name
+    if folderRB.name == "":
+        folder_name = folder_path.name
 
     folder = Folder.from_raw_data({
         "path": folder_path,
-        "name": folder_path.name,
+        "name": folder_name,
         "active": 1
     })
 
