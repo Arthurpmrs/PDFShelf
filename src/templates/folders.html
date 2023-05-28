@@ -52,7 +52,7 @@
             </div>
             <div class="folders">
                 {% for folder in folders %}
-                <div class="folder-card">
+                <div class="folder-card" id="{{ folder.folder_id }}">
                     <div class="icon">
                         {% if folder.active == True %}
                         <i class="bi bi-folder-check" style="color:#67baa7;"></i>
@@ -70,7 +70,7 @@
                     </div>
                     <div class="controls">
                         <button class="secondary">Add files</button>
-                        <button class="secondary">Edit</button>
+                        <button class="secondary edit">Edit</button>
                         <button class="secondary" disabled>Delete</button>
                     </div>
 
@@ -91,6 +91,20 @@
             <div class="controls">
                 <div class="message"></div>
                 <button id="add-folder">Add</button>
+                <button class="secondary modal-close">Close</button>
+            </div>
+        </div>
+    </dialog>
+    <dialog class="modal" id="edit-folder-modal">
+        <h2>Edit folder</h2>
+        <div class="form">
+            <label for="folder-name">New folder name</label>
+            <input type="text" id="edit-folder-name" placeholder="Folder name">
+            <label for="folder-path">New folder path</label>
+            <input type="text" id="edit-folder-path" placeholder="Folder path">
+            <div class="controls">
+                <div class="message"></div>
+                <button id="edit-folder">Edit</button>
                 <button class="secondary modal-close">Close</button>
             </div>
         </div>

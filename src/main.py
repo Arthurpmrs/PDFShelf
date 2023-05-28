@@ -34,6 +34,7 @@ def folders(request: Request):
     with DatabaseConnector() as con:
         folder_handler = FolderDBHandler(con)
         folders = folder_handler.load_folders()
+
     return templates.TemplateResponse("folders.html",
                                       {"request": request, "folders": folders})
 
@@ -61,4 +62,10 @@ def add_folder(folderRB: FolderRequestBody):
     #     folder_handler = FolderDBHandler(con)
     #     folder_handler.insert_folder(folder)
 
+    return {"success": True}
+
+
+@app.post("/folders/edit/{folder_id}")
+def edit_folder(folder_id: int, folderRB: FolderRequestBody):
+    print(folder_id, folderRB)
     return {"success": True}
