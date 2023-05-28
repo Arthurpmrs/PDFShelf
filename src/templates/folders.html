@@ -8,9 +8,12 @@
     <link href="{{ url_for('static', path='/main.css') }}" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('node_modules', path='/bootstrap-icons/font/bootstrap-icons.css') }}">
     <title>Document</title>
 </head>
 
@@ -51,38 +54,28 @@
                 {% for folder in folders %}
                 <div class="folder-card">
                     <div class="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-folder"
-                            viewBox="0 0 16 16">
-                            <path
-                                d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z" />
-                        </svg>
+                        {% if folder.active == True %}
+                        <i class="bi bi-folder-check" style="color:#67baa7;"></i>
+                        {% else %}
+                        <i class="bi bi-folder-x" style="color:#ff5695;"></i>
+                        {% endif %}
                     </div>
-                    <div class="name" title="{{ folder.name }}">
-                        {{ folder.name }}
+                    <div class="info">
+                        <div class="name" title="{{ folder.name }}">
+                            {{ folder.name }}
+                        </div>
+                        <div class="path" title="{{ folder.path }}">
+                            {{ folder.path }}
+                        </div>
                     </div>
-                    <div class="path" title="{{ folder.path }}">
-                        {{ folder.path }}
+                    <div class="controls">
+                        <button class="secondary">Add files</button>
+                        <button class="secondary">Edit</button>
+                        <button class="secondary" disabled>Delete</button>
                     </div>
-                    <button class="button-secondary">Add files</button>
+
                 </div>
                 {% endfor %}
-                <div class="folder-card">
-                    <div class="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-folder"
-                            viewBox="0 0 16 16">
-                            <path
-                                d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div class="name" title="datastructures-and-algorithms">
-                        datastructures-and-algorithms
-                    </div>
-                    <div class="path" title="/home/arthurpmrs/books/haskell">
-                        /home/arthurpmrs/books/haskell
-                    </div>
-                    <button class="button-secondary">Add files</button>
-                </div>
             </div>
         </div>
     </div>
@@ -98,7 +91,7 @@
             <div class="controls">
                 <div class="message"></div>
                 <button id="add-folder">Add</button>
-                <button class="button-secondary modal-close">Close</button>
+                <button class="secondary modal-close">Close</button>
             </div>
         </div>
     </dialog>

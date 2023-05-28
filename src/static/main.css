@@ -4,22 +4,25 @@
     --accent-color: #7a5cf9;
     --accent-color-bright: #9e89fc;
     --error-color: #ff5695;
-    /* --background-color-1: #424242; */
-    /* --background-color-2: #494949; */
-    /* --background-color-3: #535353; */
     --background-color-1: #141625;
     --background-color-2: #1f213a;
     --background-color-3: #2a2c45;
     --background-color-4: #5c5c5c;
     --border-color: #999;
+    --border-radius: 0.45em;
+    /* --background-color-1: #424242; */
+    /* --background-color-2: #494949; */
+    /* --background-color-3: #535353; */
     /*--border-color-up: rgb(179, 179, 179); */
 }
 
 html, body {
     height: 100%;
     margin: 0;
-    font-family: 'Open Sans', sans-serif;
+    box-sizing: border-box;
+    font-size: 1.125rem;
     font-weight: 700;
+    font-family: 'Open Sans';
 }
 body {
     background-color: var(--background-color-1);
@@ -31,28 +34,51 @@ button {
     align-items: center;
     box-sizing: border-box;
     border: 2px solid var(--accent-color);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     background-color: var(--accent-color);
     cursor: pointer;
     outline: none;
-    color: #f5f5f5;
-    padding: 8px 26px;
+    color: var(--text-color);
+    padding: 0.625em 2em;
+    font-size: 0.75rem;
 }
-button:hover {
-    /* background-color: var(--background-color-3); */
+
+button:hover:enabled {
     filter: brightness(110%);
-    /* border: 1px solid var(--border-color-up); */
 }
 
-button:active {
-    /* background-color: var(--background-color-4); */
+button:active:enabled {
     filter: brightness(100%);
-    /* border: 1px solid rgb(160, 160, 160) */
 }
 
-button:focus {
+button:focus:enabled {
     border: 2px solid var(--accent-color-bright);
-    /* padding: 6px 24px; */
+}
+
+button:disabled,
+button[disabled] {
+    color: var(--dimmed-text-color);
+    background-color: var(--background-color-4);
+    border: 2px solid var(--background-color-4);;
+}
+
+button.secondary {
+    background-color: var(--background-color-2); 
+}
+
+button.secondary:hover:enabled {
+    background-color: var(--accent-color);
+    filter: brightness(110%);
+}
+
+button.secondary:active:enabled {
+    background-color: var(--accent-color);
+    filter: brightness(100%);
+}
+
+button.error {
+    background-color: var(--error-color);
+    border-color: var(--error-color);
 }
 
 button svg {
@@ -61,11 +87,12 @@ button svg {
 
 input {
     box-sizing: border-box;
+    background-color: var(--background-color-3);
+    color: var(--text-color);
+    font-size: 0.75rem;
+    padding: 0.625em 1em;
     border: 1px solid var(--background-color-3);
     border-radius: 6px;
-    background-color: var(--background-color-3);
-    color: #f5f5f5;
-    padding: 8px 10px;
     outline: none;
 }
 input:focus {
@@ -77,30 +104,10 @@ h1, h2, h3 {
     padding: 0;
 }
 
-button.error {
-    background-color: var(--error-color);
-    border-color: var(--error-color);
-}
-
-.button-secondary {
-    background-color: var(--background-color-2); 
-}
-
-.button-secondary:hover {
-    background-color: var(--accent-color);
-    filter: brightness(110%);
-}
-
-.button-secondary:active {
-    background-color: var(--accent-color);
-    filter: brightness(100%);
-}
-
 /* Importer */
 .container {
-    display:flex;
-    height:100%;
-    /* border: 3px solid var(--border-color); */
+    display: flex;
+    height: 100%;
 }
 
 .container .content {
@@ -141,7 +148,6 @@ button.error {
     background-color: var(--background-color-2);
     color: #f5f5f5;
 }
-
 
 .side-bar-item.active {
     background-color: var(--accent-color);
@@ -195,38 +201,64 @@ button.error {
     padding: 10px 20px;
     margin-bottom: 12px;
     background-color: var(--background-color-2);
-    border-radius: 6px;
+    border-radius: var(--border-radius);
+}
+
+.folder-card .info {
+    padding-left: 20px;
 }
 
 .folder-card .name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 0 0 20%;
-    padding-left: 30px;
-    /* text-overflow: ellipsis; */
+    font-size: 0.875rem;
 }
 
 .folder-card .path {
-    padding-left: 24px;
-    font-size: 14px;
+    font-size: 0.75rem;
     color: var(--dimmed-text-color);
 }
 
-.folder-card button {
+.folder-card .controls {
+    display: flex;
+    align-items: center;
     margin-left: auto;
+    gap: 0px 8px;
 }
 
 .folder-card .icon {
     display: flex;
 }
 
-.folder-card .icon svg {
-    color: var(--text-color);
-    width: 24px;
-    height: 24px;
+.folder-card .icon i {
+    font-size: 1.5rem;
     align-self: center;
 }
+
+@media only screen and (max-width: 1080px) {
+    .folder-card {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .folder-card .info {
+        display: flex;
+        flex-direction: column;
+        padding-left: initial;
+        align-items: center;
+    }
+
+    .folder-card .controls {
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        margin-left: initial;
+        gap: 8px 10px;
+    }
+    .folder-card .controls > * {
+        flex-grow: 1;
+    }
+  }
+
 
 /* Modals */
 dialog::backdrop {
@@ -244,14 +276,14 @@ dialog[open] {
     background-color: var(--background-color-2);
     border-radius: 10px;
     border: 0px;
-    min-width: 30%;
+    min-width: 36%;
     padding: 20px 26px;
     opacity: 0;
     transition: opacity 0.1s;
 }
 
 .modal label {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--dimmed-text-color);
 }
 
@@ -261,7 +293,7 @@ dialog[open] {
 
 .modal h2 {
     align-self: flex-start;
-    margin: 20px 0px;
+    margin: 0.750em 0px;
     color: var(--text-color);
 }
   

@@ -20,6 +20,8 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="src/templates")
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
+app.mount("/node_modules",
+          StaticFiles(directory="node_modules"), name="node_modules")
 
 
 @app.get("/home", response_class=HTMLResponse)
@@ -55,8 +57,8 @@ def add_folder(folderRB: FolderRequestBody):
         "active": 1
     })
 
-    with DatabaseConnector() as con:
-        folder_handler = FolderDBHandler(con)
-        folder_handler.insert_folder(folder)
+    # with DatabaseConnector() as con:
+    #     folder_handler = FolderDBHandler(con)
+    #     folder_handler.insert_folder(folder)
 
     return {"success": True}
