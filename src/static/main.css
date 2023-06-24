@@ -295,6 +295,21 @@ dialog[open] {
     align-self: flex-start;
     margin: 0.750em 0px;
     color: var(--text-color);
+    display: flex;
+    align-items: center;
+}
+
+.modal h2 svg {
+    width: 0.875em;
+    margin-right: 0.250em;
+}
+
+.modal p {
+    margin-top: -10px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--dimmed-text-color);
+    align-self: flex-start;
 }
   
 .modal .form {
@@ -309,6 +324,7 @@ dialog[open] {
     align-items: center;
     margin-top: 16px;
     gap: 0px 10px;
+    width: 100%;
 }
 
 .modal .controls .message {
@@ -316,4 +332,11 @@ dialog[open] {
     font-size: 10px;
     color: var(--dimmed-text-color)
 }
+
+.modal button#delete-folder {
+    background-color: var(--error-color);
+    border-color: var(--error-color);
+}
+
+
 

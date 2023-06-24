@@ -1,18 +1,16 @@
-import json
-import time
 import sqlite3
 import logging
 import traceback
 from typing import Any
+from pathlib import Path
 from .domain import Book, Folder
+from .exceptions import FolderDoesNotExistError
 from .config import default_document_folder
-
 Connection = sqlite3.Connection
 
 
 class DatabaseConnector:
-
-    DB_PATH = default_document_folder / "pdfshelf.db"
+    DB_PATH: Path = default_document_folder / "pdfshelf.db"
 
     def __init__(self):
         self.con = sqlite3.connect(self.DB_PATH)
@@ -88,14 +86,14 @@ class BookDBHandler:
         self.con = con
         self.logger = logging.getLogger(__name__)
 
-    def insert_book(self, book: Book) -> tuple[int, int]:
+    def insert_book(self, book: Book) -> int:
         """Insert a list of Book objects into Book table."""
 
         try:
             cur = self.con.cursor()
             self.logger.info(f"Transaction started")
 
-            book_id, folder_id = self._insert_single_book(book, cur)
+            book_id = self._insert_single_book(book, cur)
 
             self.con.commit()
             self.logger.info(f"Transaction ended successfully!")
@@ -105,9 +103,9 @@ class BookDBHandler:
                 f"{traceback.format_exc()}"
             )
             self.con.rollback()
-            return -1, -1
+            return -1
 
-        return book_id, folder_id
+        return book_id
 
     def insert_books(self, books: list[Book]) -> None:
         """Insert a single Book object into Book table."""
@@ -134,31 +132,18 @@ class BookDBHandler:
             )
             self.con.rollback()
 
-    def _insert_single_book(self, book: Book, cur: sqlite3.Cursor) -> tuple[int, int]:
+    def _insert_single_book(self, book: Book, cur: sqlite3.Cursor) -> int:
         """Inserts Book into Book table if not Duplicate."""
 
         if book is None:
             self.logger.error("None Book passed!")
             raise TypeError("Can not insert a None Book!")
 
-        parsed_book, parsed_folder = book.get_parsed_dict()
+        parsed_book, _ = book.get_parsed_dict()
 
-        folder_status = "ADDED"
-        try:
-            values = ":folder_id, :name, :path, :added_date, :active"
-            cur.execute(f"INSERT INTO Folder VALUES({values})", parsed_folder)
-        except sqlite3.IntegrityError:
-            folder_status = "ALREADY EXISTS"
-
-        folder_id = cur.execute(
-            "SELECT folder_id FROM Folder WHERE name = ?;",
-            (book.folder.name,)
-        ).fetchone()[0]
-        parsed_book["folder_id"] = folder_id
-
-        self.logger.debug(f"    "
-                          f"[{folder_status}] Folder {book.folder.name} "
-                          f"(ID = {folder_id})")
+        if book.folder.folder_id is None:
+            self.logger.error(f"Folder {book.folder.name} does not exist!")
+            raise FolderDoesNotExistError("Folder id missing.")
 
         is_duplicate = False
         try:
@@ -185,7 +170,7 @@ class BookDBHandler:
                 cur, book_id, parsed_book, book.get_short_filename()
             )
 
-        return book_id, folder_id
+        return book_id
 
     def _insert_duplicate_book(
         self, cur: sqlite3.Cursor, book_id: int, parsed_book: dict,
@@ -385,27 +370,57 @@ class FolderDBHandler:
             raise TypeError("Can not insert a None Folder!")
 
         parsed_folder = folder.get_parsed_dict()
-        folder_status = "ADDED"
         try:
             values = ":folder_id, :name, :path, :added_date, :active"
             query = f"INSERT INTO Folder VALUES({values})"
             self.con.execute(query, parsed_folder)
             self.con.commit()
         except sqlite3.IntegrityError:
-            folder_status = "ALREADY EXISTS"
+            self.logger.error(f"[ALREADY EXISTS] Folder:\n"
+                              f"name=\"{folder.name}\\n"
+                              f"path=\"{folder.path}\"")
+            raise ValueError(f"Folder \"{folder.name}\" already exists!")
 
         select_query = """
                        SELECT folder_id
                        FROM Folder
-                       WHERE Folder.name = ?
+                       WHERE Folder.name = ? OR Folder.path = ?
                        """
-        folder_id = (self.con.execute(select_query, (folder.name, ))
+
+        folder_id = (self.con.execute(select_query,
+                                      (parsed_folder["name"],
+                                       parsed_folder["path"], ))
                      .fetchone()[0])
 
-        self.logger.debug(f"[{folder_status}] Folder \"{folder.name}\" "
+        self.logger.debug(f"[ADDED] Folder \"{folder.name}\" "
                           f"(ID = {folder_id})")
 
         return folder_id
+
+    def is_path_duplicate(self, folder: Folder) -> bool:
+        """Check if the Folder path exists in the Database."""
+
+        parsed_folder = folder.get_parsed_dict()
+        return self._exists("path", parsed_folder["path"])
+
+    def is_name_duplicate(self, folder: Folder) -> bool:
+        """Check if the Folder name exists in the Database."""
+
+        parsed_folder = folder.get_parsed_dict()
+        return self._exists("name", parsed_folder["name"])
+
+    def _exists(self, field: str, value: str) -> bool:
+        """Check if a field of a Folder exists in the Database."""
+
+        query = f"""
+                SELECT EXISTS(
+                    SELECT 1 FROM Folder
+                    WHERE Folder.{field} = ?
+                )
+                """
+
+        result = self.con.execute(query, (value, )).fetchone()[0]
+        return result == 1
 
     def load_folder_by_id(self, folder_id: int) -> Folder:
         """Load one Folder given a ID."""

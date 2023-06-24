@@ -11,7 +11,7 @@ from ebooklib.epub import EpubException
 from pathlib import Path
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-from .domain import Book
+from .domain import Book, Folder
 from .exceptions import FormatNotSupportedError
 from .utilities import validade_isbn10, validate_isbn13
 
@@ -37,13 +37,13 @@ def book_from_file(file: Path) -> Book:
     return importer.import_from_file(file)
 
 
-def books_from_folder(folder: Path) -> list[Book]:
+def books_from_folder(folder: Folder) -> list[Book]:
     """
     High-Level function to get a list of Book objects with metadata from 
     a local folder.
 
     input:
-        folder: Path
+        folder: Folder
 
     return:
         list[Book]
@@ -212,7 +212,7 @@ class BookImporter:
         self.fetcher = fetcher
         self.parser = parser
 
-    def import_from_file(self, file: Path, folder: dict | None = None) -> Book:
+    def import_from_file(self, file: Path, folder: Folder | None = None) -> Book:
         """"""
         if not file.is_file():
             self.logger.error(f"File: {file} does not exists.")
@@ -224,10 +224,10 @@ class BookImporter:
         metadata, success = self.fetcher.from_isbn(isbn10, isbn13)
 
         if folder is None:
-            folder = {
+            folder = Folder.from_raw_data({
                 "name": file.parent.name,
                 "path": file.parent
-            }
+            })
 
         year = metadata.get("Year", "0")
         book = Book.from_raw_data({
@@ -241,22 +241,21 @@ class BookImporter:
             "folder": folder,
             "filename": file.name,
             "ext": file.suffix,
-            "storage_path": file.relative_to(folder["path"]),
+            "storage_path": file.relative_to(folder.path),
             "size": os.path.getsize(file),
             "tags": [],
             "cover_path": None
         })
         return book
 
-    def import_from_folder(self, folderpath: Path) -> list[Book]:
+    def import_from_folder(self, folder: Folder) -> list[Book]:
         """"""
-        if not folderpath.is_dir():
-            self.logger.error(f"Folder: {folderpath} does not exists.")
+        if not folder.path.is_dir():
+            self.logger.error(f"Folder: {folder.path} does not exists.")
             raise FileNotFoundError("This directory does not exist.")
 
         books = []
-        folder = {"name": folderpath.name, "path": folderpath}
-        for filepath in folderpath.rglob("*"):
+        for filepath in folder.path.rglob("*"):
             if filepath.suffix in FORMATS:
                 book_data = self.import_from_file(filepath, folder)
                 books.append(book_data)

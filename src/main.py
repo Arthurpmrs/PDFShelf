@@ -1,9 +1,12 @@
+import logging
+import time
 from pathlib import Path
 from dataclasses import dataclass
 from src.pdfshelf.domain import Folder
 from src.pdfshelf.importer import books_from_folder
 from src.pdfshelf.config import config_folder
 from src.pdfshelf.database import DatabaseConnector, BookDBHandler, FolderDBHandler
+from src.pdfshelf.importer import books_from_folder
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +20,8 @@ class FolderRequestBody:
 
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
+
 
 templates = Jinja2Templates(directory="src/templates")
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
@@ -42,10 +47,12 @@ def folders(request: Request):
 @app.post("/folders/add")
 def add_folder(folderRB: FolderRequestBody):
     if folderRB.path == "":
+        logger.warning("No path provided.")
         return {"success": False, "message": "No path provided."}
 
     folder_path = Path(folderRB.path)
     if folder_path.exists() == False:
+        logger.warning("Folder does not exist.")
         return {"success": False, "message": "Folder does not exist."}
 
     folder_name = folderRB.name
@@ -58,16 +65,32 @@ def add_folder(folderRB: FolderRequestBody):
         "active": 1
     })
 
-    # with DatabaseConnector() as con:
-    #     folder_handler = FolderDBHandler(con)
-    #     folder_handler.insert_folder(folder)
+    with DatabaseConnector() as con:
+        # Insert the folder
+        folder_handler = FolderDBHandler(con)
+        if folder_handler.is_path_duplicate(folder):
+            logger.warning("Folder already exists in db.")
+            return {"success": False, "message": "Folder already exists in db."}
 
-    return {"success": True}
+        if folder_handler.is_name_duplicate(folder):
+            folder.name = f"{round(time.time())}_{folder.name}"
+            logger.info("Folder name already exists in db. Renaming folder.")
+
+        folder_id = folder_handler.insert_folder(folder)
+        folder.folder_id = folder_id
+
+        # Get book info from files in the folder
+        books = books_from_folder(folder)
+
+        # Add books to the database
+        book_handler = BookDBHandler(con)
+        book_handler.insert_books(books)
+
+    return {"success": True, "message": "Folder and books added successfully."}
 
 
 @app.post("/folders/edit/{folder_id}")
 def edit_folder(folder_id: int, folderRB: FolderRequestBody):
-    print(folder_id, folderRB)
     if folderRB.path == "":
         print("bla")
         return {"success": False, "message": "No path provided."}
@@ -89,7 +112,14 @@ def edit_folder(folder_id: int, folderRB: FolderRequestBody):
     return {"success": True}
 
 
-@app.post("/folder/delete/{folder_id}")
-def delete_folder(folder_id: int, folderRB: FolderRequestBody):
-    print(folder_id, folderRB)
+@app.post("/folders/delete/{folder_id}")
+def delete_folder(folder_id: int):
+    with DatabaseConnector() as con:
+        folder_handler = FolderDBHandler(con)
+        if not folder_handler.delete_folder(folder_id):
+            return {
+                "success": False,
+                "message": "Deletion failed. See the logs for more information."
+            }
+
     return {"success": True}
