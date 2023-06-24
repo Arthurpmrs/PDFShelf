@@ -499,6 +499,12 @@ class FolderDBHandler:
                 f"{traceback.format_exc()}"
             )
             return False
+        except sqlite3.IntegrityError:
+            self.logger.error(
+                "One of the values violates an UNIQUE constraint\n"
+                f"{traceback.format_exc()}"
+            )
+            return False
         except sqlite3.Error:
             self.logger.error(
                 "Update failed!\n"

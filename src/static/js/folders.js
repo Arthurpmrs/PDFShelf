@@ -7,7 +7,10 @@
     const addFolderButton = document.querySelector("#add-folder");
     const openAddFolderModel = document.querySelector("#open-add-modal");
     const addFolderInputs = addFolderModal.querySelectorAll("input");
-    let ERROR_STATUS = false;
+    let ERROR_STATUS = {
+        add: false,
+        edit: false,
+    };
 
     // event listeners for folders.html - COLOCAR NUM OBJETO
     openAddFolderModel.addEventListener("click", () => {
@@ -24,9 +27,9 @@
 
     addFolderInputs.forEach((input) => {
         input.addEventListener("focus", () => {
-            if (ERROR_STATUS) {
+            if (ERROR_STATUS.add === true) {
                 reset_modal(addFolderModal);
-                ERROR_STATUS = false;
+                ERROR_STATUS.add = false;
             }
         });
     });
@@ -37,6 +40,7 @@
         "#edit-folder-modal .modal-close"
     );
     const editButtons = document.querySelectorAll("button.edit");
+    const editFolderInputs = editFolderModal.querySelectorAll("input");
     editButtons.forEach((button) => {
         button.addEventListener("click", () => {
             setup_edit_modal(button.parentElement.parentElement);
@@ -45,6 +49,14 @@
     });
     editFolderCloseButton.addEventListener("click", () => {
         editFolderModal.close();
+    });
+    editFolderInputs.forEach((input) => {
+        input.addEventListener("focus", () => {
+            if (ERROR_STATUS.edit === true) {
+                reset_modal(editFolderModal);
+                ERROR_STATUS.edit = false;
+            }
+        });
     });
 
     // methods
@@ -69,7 +81,7 @@
                     name_input.value = "";
                     window.location.reload();
                 } else {
-                    set_modal_error_state(data.message);
+                    set_modal_error_state(addFolderModal, data.message, "add");
                 }
             });
     }
@@ -89,9 +101,13 @@
         path_input.value = folder_path;
 
         const editFolderButton = editFolderModal.querySelector("#edit-folder");
-        editFolderButton.addEventListener("click", () => {
-            post_edit_folder(folder_id);
-        });
+        editFolderButton.addEventListener(
+            "click",
+            () => {
+                post_edit_folder(folder_id);
+            },
+            { once: true }
+        );
     }
 
     function post_edit_folder(folder_id) {
@@ -116,22 +132,26 @@
                     name_input.value = "";
                     window.location.reload();
                 } else {
-                    // set_modal_error_state(data.message);
+                    set_modal_error_state(
+                        editFolderModal,
+                        data.message,
+                        "edit"
+                    );
                     console.log("Something went wrong");
                 }
             });
     }
 
     //TODO: Make it generic
-    function set_modal_error_state(message) {
-        const modalMessage = addFolderModal.querySelector(".message");
+    function set_modal_error_state(modal, message, type) {
+        const modalMessage = modal.querySelector(".message");
         modalMessage.innerText = message;
-        addFolderButton.classList.add("error");
-        ERROR_STATUS = true;
+        modal.querySelector("button.main-action").classList.add("error");
+        ERROR_STATUS[type] = true;
     }
     //TODO: Make it generic
     function reset_modal(modal) {
-        modal.querySelector("#add-folder").classList.remove("error");
+        modal.querySelector("button.main-action").classList.remove("error");
         modal.querySelector(".message").innerText = "";
     }
 })();

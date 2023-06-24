@@ -68,4 +68,28 @@ def add_folder(folderRB: FolderRequestBody):
 @app.post("/folders/edit/{folder_id}")
 def edit_folder(folder_id: int, folderRB: FolderRequestBody):
     print(folder_id, folderRB)
+    if folderRB.path == "":
+        print("bla")
+        return {"success": False, "message": "No path provided."}
+
+    if Path(folderRB.path).exists() == False:
+        print("ble")
+        return {"success": False, "message": "Folder does not exist."}
+
+    content = {
+        "name": folderRB.name,
+        "path": folderRB.path,
+    }
+
+    with DatabaseConnector() as con:
+        folder_handler = FolderDBHandler(con)
+        if not folder_handler.update_folder(folder_id, content):
+            return {"success": False, "message": "The data provided is invalid"}
+
+    return {"success": True}
+
+
+@app.post("/folder/delete/{folder_id}")
+def delete_folder(folder_id: int, folderRB: FolderRequestBody):
+    print(folder_id, folderRB)
     return {"success": True}
